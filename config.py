@@ -1,7 +1,7 @@
 import os
 
 # Telegram Bot Configuration
-TELEGRAM_BOT_TOKEN = os.getenv("TELEGRAM_BOT_TOKEN", "7816965212:AAHFQfvvbjFtmRajS2wFLTiJZeKOfEzo7C0")
+TELEGRAM_BOT_TOKEN = os.getenv("TELEGRAM_BOT_TOKEN", "7816965212:AAHFQfvvbjFtmRajS2wFLTiJZeKOfEzo7C1")
 
 # Odds API Configuration
 ODDS_API_KEY = os.getenv("ODDS_API_KEY", "b042ef3e00a923abda5dade83334ec20")
