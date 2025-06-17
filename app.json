@@ -1,0 +1,27 @@
+{
+  "name": "Sports Betting Bot",
+  "description": "Telegram bot for sports betting predictions with live odds analysis",
+  "repository": "https://github.com/your-username/sports-betting-bot",
+  "keywords": ["telegram", "bot", "sports", "betting", "predictions"],
+  "env": {
+    "TELEGRAM_BOT_TOKEN": {
+      "description": "Your Telegram Bot Token from BotFather (@BotFather on Telegram)",
+      "required": true
+    },
+    "ODDS_API_KEY": {
+      "description": "Your API key from the-odds-api.com (free tier available)",
+      "required": true
+    }
+  },
+  "formation": {
+    "worker": {
+      "quantity": 1,
+      "size": "eco"
+    }
+  },
+  "buildpacks": [
+    {
+      "url": "heroku/python"
+    }
+  ]
+}
