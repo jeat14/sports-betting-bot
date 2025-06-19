@@ -55,30 +55,11 @@ class AdvancedPredictionEngine:
     def _fetch_comprehensive_data(self, sport_key: str) -> List[Dict]:
         """Fetch comprehensive odds and market data"""
         try:
-            url = f"{self.base_url}/sports/{sport_key}/odds/"
-            params = {
-                'apiKey': self.odds_api_key,
-                'regions': 'us,uk,eu,au',  # Multiple regions for better odds
-                'markets': 'h2h,spreads,totals,outrights',
-                'oddsFormat': 'decimal',
-                'dateFormat': 'iso'
-            }
-            
-            response = requests.get(url, params=params, timeout=15)
-            if response.status_code == 200:
-                games = response.json()
-                # Filter for games in next 48 hours
-                now = datetime.now()
-                upcoming = []
-                for game in games:
-                    try:
-                        game_time = datetime.fromisoformat(game['commence_time'].replace('Z', '+00:00'))
-                        if now < game_time < now + timedelta(hours=48):
-                            upcoming.append(game)
-                    except:
-                        continue
-                return upcoming[:15]
-            return []
+            # Use the same OddsService that works for regular predictions
+            from odds_service import OddsService
+            odds_service = OddsService()
+            games = odds_service.get_odds(sport_key)
+            return games[:15] if games else []
         except Exception as e:
             logger.error(f"Error fetching data: {e}")
             return []
