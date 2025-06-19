@@ -6,10 +6,10 @@ This bot fetches live sports odds and provides betting predictions
 based on odds analysis from multiple bookmakers.
 """
 
-import logging
 import os
+import logging
 from telegram import Update
-from telegram.ext import Application, CommandHandler, CallbackQueryHandler, MessageHandler, filters, ContextTypes
+from telegram.ext import Application, CommandHandler, MessageHandler, CallbackQueryHandler, filters, ContextTypes
 from bot_handlers import BotHandlers
 
 # Configure logging
@@ -49,9 +49,17 @@ def main():
         application.add_handler(CommandHandler("scores", handlers.scores_command))
         application.add_handler(CommandHandler("games", handlers.games_command))
         application.add_handler(CommandHandler("today", handlers.today_command))
-application.add_handler(CommandHandler("advanced", handlers.advanced_predictions_command))
-application.add_handler(CommandHandler("trackbet", handlers.track_bet_command))
-application.add_handler(CommandHandler("mystats", handlers.my_stats_command))        
+        
+        # Advanced prediction commands
+        application.add_handler(CommandHandler("advanced", handlers.advanced_predictions_command))
+        application.add_handler(CommandHandler("horses", handlers.horse_racing_command))
+        application.add_handler(CommandHandler("allsports", handlers.all_sports_command))
+        
+        # Betting tracking commands
+        application.add_handler(CommandHandler("trackbet", handlers.track_bet_command))
+        application.add_handler(CommandHandler("mystats", handlers.my_stats_command))
+        application.add_handler(CommandHandler("pending", handlers.pending_bets_command))
+        
         # Register callback query handler for inline buttons
         application.add_handler(CallbackQueryHandler(handlers.button_callback))
         
@@ -85,7 +93,6 @@ if __name__ == '__main__':
         main()
     except KeyboardInterrupt:
         logger.info("Bot stopped by user")
-        print("Bot stopped!")
     except Exception as e:
-        logger.error(f"Fatal error: {e}")
-        print(f"Fatal error: {e}")
+        logger.error(f"Unexpected error: {e}")
+        print(f"Unexpected error: {e}")
