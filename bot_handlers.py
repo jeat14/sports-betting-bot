@@ -1,4 +1,5 @@
-from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup
+from advanced_prediction_engine import AdvancedPredictionEngine
+from betting_tracker import BettingTrackerfrom telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup
 from telegram.ext import ContextTypes
 from telegram.constants import ParseMode
 from odds_service import OddsService
@@ -12,7 +13,8 @@ logger = logging.getLogger(__name__)
 
 class BotHandlers:
     def __init__(self):
-        self.odds_service = OddsService()
+     self.advanced_engine = AdvancedPredictionEngine()
+self.betting_tracker = BettingTracker()   self.odds_service = OddsService()
         self.prediction_engine = PredictionEngine(self.odds_service)
         self.score_predictor = ScorePredictor()
     
@@ -314,7 +316,69 @@ Choose a sport below:
             await update.message.reply_text(
                 "Sorry, couldn't generate score predictions at the moment. Please try again later."
             )
+async def advanced_predictions_command(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
+    """Handle /advanced command - enhanced predictions"""
+    try:
+        await update.message.reply_text("🔬 Running advanced analysis...")
+        
+        predictions = self.advanced_engine.generate_enhanced_predictions('soccer_fifa_club_world_cup')
+        if predictions:
+            message = "🎯 **ADVANCED PREDICTIONS**\n\n"
+            for i, pred in enumerate(predictions[:3], 1):
+                message += f"{i}. **{pred['home_team']} vs {pred['away_team']}**\n"
+                message += f"   🎲 Bet: {pred['recommended_team']} @ {pred['best_odds']:.2f}\n"
+                message += f"   📊 Confidence: {pred['confidence']:.0f}%\n"
+                message += f"   💰 Expected Value: {pred['expected_value']:.3f}\n\n"
+            
+            await update.message.reply_text(message, parse_mode=ParseMode.MARKDOWN)
+        else:
+            await update.message.reply_text("No high-value opportunities found.")
+    except Exception as e:
+        await update.message.reply_text("Error generating advanced predictions.")
 
+async def track_bet_command(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
+    """Handle /trackbet command"""
+    try:
+        if not context.args or len(context.args) < 4:
+            await update.message.reply_text(
+                "Usage: `/trackbet [sport] [team] [odds] [stake]`\n"
+                "Example: `/trackbet soccer ManCity 1.50 10`"
+            )
+            return
+        
+        sport = context.args[0]
+        team = context.args[1]
+        odds = float(context.args[2])
+        stake = float(context.args[3])
+        
+        bet_id = self.betting_tracker.add_bet(
+            sport=sport,
+            event=f"{team} match",
+            bet_type="moneyline",
+            selection=team,
+            odds=odds,
+            stake=stake,
+            bookmaker="Manual Entry",
+            event_time="TBD"
+        )
+        
+        await update.message.reply_text(
+            f"✅ **Bet Tracked**\n"
+            f"🎫 ID: {bet_id[:8]}...\n"
+            f"🎯 {team} @ {odds:.2f}\n"
+            f"💰 Stake: £{stake:.2f}\n"
+            f"🎰 Potential: £{(odds * stake):.2f}"
+        )
+    except:
+        await update.message.reply_text("❌ Invalid format. Use: /trackbet sport team odds stake")
+
+async def my_stats_command(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
+    """Handle /mystats command"""
+    try:
+        summary = self.betting_tracker.generate_performance_summary()
+        await update.message.reply_text(summary, parse_mode=ParseMode.MARKDOWN)
+    except:
+        await update.message.reply_text("Error retrieving statistics.")
     async def help_command(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
         """Handle /help command"""
         help_text = """
