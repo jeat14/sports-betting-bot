@@ -301,154 +301,237 @@ Use /help for detailed command guide.
                     "**BET TRACKING USAGE:**\n━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n\n"
                     "`/trackbet [sport] [team] [odds] [stake]`\n\n"
                     "**Examples:**\n"
-                    "• `/trackbet soccer ManCity 1.85 25`\n"
-                    "• `/trackbet basketball Lakers 2.10 15`\n"
-                    "• `/trackbet tennis Djokovic 1.60 50`\n\n"
-                    "**Parameters:**\n"
-                    "• **Sport:** soccer, basketball, tennis, etc.\n"
-                    "• **Team/Player:** Selection name\n"
-                    "• **Odds:** Decimal odds (e.g., 1.85)\n"
-                    "• **Stake:** Bet amount in £/$/€",
+                    "• `/trackbet soccer Liverpool 2.10 50`\n"
+                    "• `/trackbet basketball Lakers 1.85 25`\n\n"
+                    "Track your bets to monitor performance and ROI.",
                     parse_mode=ParseMode.MARKDOWN
                 )
                 return
-            
-            sport, team, odds, stake = context.args[0], context.args[1], float(context.args[2]), float(context.args[3])
+                
+            sport, team, odds_str, stake_str = context.args[:4]
+            try:
+                odds = float(odds_str)
+                stake = float(stake_str)
+            except:
+                await update.message.reply_text("❌ Invalid odds or stake format. Use numbers only.")
+                return
+                
             bet_id = self.betting_tracker.add_bet(
-                sport=sport, event=f"{team} match", bet_type="moneyline", 
-                selection=team, odds=odds, stake=stake, bookmaker="Manual", event_time="TBD"
+                sport=sport,
+                event=f"{team} bet",
+                bet_type="prediction",
+                selection=team,
+                odds=odds,
+                stake=stake,
+                bookmaker="manual",
+                event_time="TBD"
             )
             
-            potential_return = odds * stake
-            potential_profit = potential_return - stake
+            potential_win = stake * odds
+            profit = potential_win - stake
             
-            message = f"✅ **BET SUCCESSFULLY TRACKED**\n━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n\n"
-            message += f"🎫 **Bet ID:** {bet_id[:8]}...\n"
-            message += f"🏆 **Selection:** {team}\n"
+            message = f"✅ **BET TRACKED SUCCESSFULLY**\n━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n\n"
+            message += f"🆔 **Bet ID:** {bet_id}\n"
+            message += f"🏆 **Sport:** {sport.title()}\n"
+            message += f"🎯 **Selection:** {team}\n"
             message += f"💰 **Odds:** {odds:.2f}\n"
-            message += f"💵 **Stake:** £{stake:.2f}\n"
-            message += f"📈 **Potential Return:** £{potential_return:.2f}\n"
-            message += f"🎯 **Potential Profit:** £{potential_profit:.2f}\n\n"
-            message += f"Use `/mystats` to view your performance\n"
-            message += f"Use `/pending` to see all active bets"
+            message += f"💵 **Stake:** ${stake:.2f}\n"
+            message += f"🎊 **Potential Win:** ${potential_win:.2f}\n"
+            message += f"📈 **Profit:** ${profit:.2f}\n\n"
+            message += f"Use `/mystats` to view your betting performance"
             
             await update.message.reply_text(message, parse_mode=ParseMode.MARKDOWN)
-        except ValueError:
-            await update.message.reply_text(
-                "❌ **INVALID FORMAT**\n\n"
-                "Please use: `/trackbet sport team odds stake`\n"
-                "Example: `/trackbet soccer ManCity 1.85 25`",
-                parse_mode=ParseMode.MARKDOWN
-            )
         except Exception:
-            await update.message.reply_text("❌ Error tracking bet. Please try again.")
+            await update.message.reply_text("❌ Error tracking bet.")
 
     async def my_stats_command(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
         try:
-            summary = self.betting_tracker.generate_performance_summary()
-            await update.message.reply_text(summary, parse_mode=ParseMode.MARKDOWN)
+            performance = self.betting_tracker.get_overall_performance()
+            
+            message = "📊 **YOUR BETTING STATISTICS**\n━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n\n"
+            message += f"🎯 **Total Bets:** {performance['total_bets']}\n"
+            message += f"✅ **Won:** {performance['won_bets']}\n"
+            message += f"❌ **Lost:** {performance['lost_bets']}\n"
+            message += f"⏳ **Pending:** {performance['pending_bets']}\n\n"
+            
+            if performance['total_bets'] > 0:
+                win_rate = (performance['won_bets'] / performance['total_bets']) * 100
+                message += f"📈 **Win Rate:** {win_rate:.1f}%\n"
+                message += f"💰 **Total Staked:** ${performance['total_staked']:.2f}\n"
+                message += f"🎊 **Total Returns:** ${performance['total_returns']:.2f}\n"
+                message += f"📊 **Net P&L:** ${performance['net_profit']:.2f}\n"
+                
+                if performance['total_staked'] > 0:
+                    roi = (performance['net_profit'] / performance['total_staked']) * 100
+                    roi_emoji = "🟢" if roi > 0 else "🔴" if roi < 0 else "🟡"
+                    message += f"{roi_emoji} **ROI:** {roi:.1f}%\n"
+            
+            message += f"\nUse `/pending` to view active bets"
+            await update.message.reply_text(message, parse_mode=ParseMode.MARKDOWN)
         except Exception:
-            await update.message.reply_text("❌ Error retrieving statistics.")
+            await update.message.reply_text("❌ Error fetching statistics.")
 
     async def pending_bets_command(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
         try:
-            pending = self.betting_tracker.get_pending_bets()
-            if not pending:
-                await update.message.reply_text("📭 **No pending bets found.**", parse_mode=ParseMode.MARKDOWN)
-                return
-            message = "⏳ **PENDING BETS**\n━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n\n"
-            for bet in pending[:5]:
-                message += f"🎯 **{bet.selection}** @ {bet.odds:.2f}\n💰 Stake: £{bet.stake:.2f}\n\n"
+            pending_bets = self.betting_tracker.get_pending_bets()
+            
+            if pending_bets:
+                message = "⏳ **PENDING BETS**\n━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n\n"
+                for i, bet in enumerate(pending_bets[:5], 1):
+                    potential_win = bet.stake * bet.odds
+                    message += f"**{i}. {bet.selection}**\n"
+                    message += f"🏆 Sport: {bet.sport.title()}\n"
+                    message += f"💰 Odds: {bet.odds:.2f}\n"
+                    message += f"💵 Stake: ${bet.stake:.2f}\n"
+                    message += f"🎊 Potential: ${potential_win:.2f}\n"
+                    message += f"🆔 ID: {bet.bet_id[:8]}\n\n"
+                
+                message += f"Total pending: {len(pending_bets)} bets"
+            else:
+                message = "✅ **NO PENDING BETS**\n━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n\n"
+                message += "Use `/trackbet` to add new bets for tracking."
+            
             await update.message.reply_text(message, parse_mode=ParseMode.MARKDOWN)
         except Exception:
-            await update.message.reply_text("❌ Error retrieving pending bets.")
+            await update.message.reply_text("❌ Error fetching pending bets.")
 
     async def horse_racing_command(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
-        await update.message.reply_text(
-            "🐎 **HORSE RACING PREDICTIONS**\n━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n\n"
-            "**Analyzing races from:**\n"
-            "🇬🇧 UK tracks (Cheltenham, Ascot, Newmarket)\n"
-            "🇺🇸 US tracks (Churchill Downs, Belmont)\n"
-            "🇦🇺 Australian tracks (Flemington, Randwick)\n\n"
-            "Advanced horse racing analysis with form, jockey stats, and track conditions coming soon!",
-            parse_mode=ParseMode.MARKDOWN
-        )
-
-    async def all_sports_command(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
         try:
-            message = "🌍 **ALL SPORTS VALUE OPPORTUNITIES**\n━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n\n"
-            sports_to_check = ['soccer_epl', 'americanfootball_nfl', 'basketball_nba']
-            found_predictions = False
+            await update.message.reply_text("🐎 **Fetching horse racing predictions...**", parse_mode=ParseMode.MARKDOWN)
             
-            for sport in sports_to_check:
+            # Check multiple horse racing markets
+            horse_sports = ['horseracing_uk', 'greyhound_racing_uk']
+            all_predictions = []
+            
+            for sport in horse_sports:
                 try:
-                    predictions = self.advanced_engine.generate_enhanced_predictions(sport)
+                    predictions = self.prediction_engine.generate_predictions(sport)
                     if predictions:
-                        found_predictions = True
-                        pred = predictions[0]
-                        sport_name = sport.replace('_', ' ').title()
-                        expected_value = pred['expected_value']
-                        value_emoji = "🔥" if expected_value > 0.05 else "⚡" if expected_value > 0 else "📊"
-                        
-                        message += f"**{sport_name}**\n"
-                        message += f"{value_emoji} {pred['recommended_team']} @ {pred['best_odds']:.2f}\n"
-                        message += f"📊 Confidence: {pred['confidence']:.0f}% | EV: {expected_value:.3f}\n\n"
+                        for pred in predictions[:2]:
+                            pred['sport_display'] = sport.replace('_', ' ').title()
+                            all_predictions.append(pred)
                 except:
                     continue
             
-            if found_predictions:
-                message += "💡 Use `/advanced [sport]` for detailed Kelly analysis"
-                await update.message.reply_text(message, parse_mode=ParseMode.MARKDOWN)
+            if all_predictions:
+                message = "🐎 **HORSE RACING PREDICTIONS**\n━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n\n"
+                for i, pred in enumerate(all_predictions[:3], 1):
+                    confidence = pred['confidence']
+                    confidence_emoji = "🟢" if confidence >= 75 else "🟡"
+                    
+                    message += f"**{i}. {pred.get('sport_display', 'Racing')}**\n"
+                    message += f"🏇 **Selection:** {pred['prediction']}\n"
+                    message += f"{confidence_emoji} **Confidence:** {confidence:.1f}%\n"
+                    message += f"💰 **Best Odds:** {pred['best_odds']:.2f}\n"
+                    message += "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n\n"
+                
+                message += "🎯 Specialized algorithms for racing markets\n"
+                message += "📊 Track form, jockey stats, and course conditions"
             else:
-                await update.message.reply_text("❌ No current high-value opportunities across monitored sports.")
+                message = "❌ **NO RACING AVAILABLE**\n━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n\n"
+                message += "No horse racing markets currently active.\n"
+                message += "Try checking again during UK racing hours."
+            
+            await update.message.reply_text(message, parse_mode=ParseMode.MARKDOWN)
         except Exception:
-            await update.message.reply_text("❌ Error retrieving multi-sport predictions.")
+            await update.message.reply_text("❌ Error fetching horse racing data.")
+
+    async def all_sports_command(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
+        try:
+            await update.message.reply_text("🔍 **Scanning all sports for value bets...**", parse_mode=ParseMode.MARKDOWN)
+            
+            # Check multiple sports for best opportunities
+            sports_to_check = [
+                'soccer_epl', 'basketball_nba', 'americanfootball_nfl',
+                'baseball_mlb', 'tennis_atp', 'soccer_champions_league'
+            ]
+            
+            all_opportunities = []
+            
+            for sport in sports_to_check:
+                try:
+                    predictions = self.prediction_engine.generate_predictions(sport)
+                    if predictions:
+                        best_pred = max(predictions, key=lambda x: x['confidence'])
+                        if best_pred['confidence'] >= 70:
+                            best_pred['sport_key'] = sport
+                            all_opportunities.append(best_pred)
+                except:
+                    continue
+            
+            if all_opportunities:
+                # Sort by confidence
+                all_opportunities.sort(key=lambda x: x['confidence'], reverse=True)
+                
+                message = "🌍 **MULTI-SPORT VALUE OPPORTUNITIES**\n━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n\n"
+                
+                for i, opp in enumerate(all_opportunities[:4], 1):
+                    sport_name = opp['sport_key'].replace('_', ' ').title()
+                    confidence = opp['confidence']
+                    confidence_emoji = "🟢" if confidence >= 80 else "🟡"
+                    
+                    message += f"**{i}. {sport_name}**\n"
+                    message += f"🏆 {opp['home_team']} vs {opp['away_team']}\n"
+                    message += f"🎯 **Pick:** {opp['prediction']}\n"
+                    message += f"{confidence_emoji} **Confidence:** {confidence:.1f}%\n"
+                    message += f"💰 **Odds:** {opp['best_odds']:.2f}\n"
+                    message += "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n\n"
+                
+                message += f"Found {len(all_opportunities)} high-value opportunities\n"
+                message += "🎲 Use `/advanced [sport]` for detailed analysis"
+            else:
+                message = "📊 **MARKET SCAN COMPLETE**\n━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n\n"
+                message += "No high-confidence opportunities found at the moment.\n"
+                message += "Market conditions may be efficient right now.\n\n"
+                message += "🔄 Try again in a few hours for new opportunities."
+            
+            await update.message.reply_text(message, parse_mode=ParseMode.MARKDOWN)
+        except Exception:
+            await update.message.reply_text("❌ Error scanning sports markets.")
 
     async def help_command(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
-        help_text = """📖 **COMPLETE COMMAND GUIDE**
+        help_text = """📚 **COMPLETE COMMAND GUIDE**
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
-**🎯 CORE PREDICTIONS:**
-• `/start` - Welcome & overview
+**🎯 PREDICTION COMMANDS:**
 • `/predictions [sport]` - Smart predictions with confidence
-• `/advanced [sport]` - Kelly Criterion analysis & EV
+• `/advanced [sport]` - Kelly Criterion & expected value
 • `/scores [sport]` - Exact score predictions
-• `/today` - Today's best opportunities
-• `/allsports` - Multi-sport value hunting
-
-**📊 MARKET DATA:**
-• `/sports` - Browse available sports & leagues
 • `/odds [sport]` - Live odds comparison
-• `/games [sport]` - Upcoming fixtures
+
+**📊 MARKET ANALYSIS:**
+• `/today` - Today's featured games
+• `/allsports` - Multi-sport value scan
+• `/horses` - Horse racing specialists
+• `/sports` - Browse all available sports
 
 **💰 BET TRACKING:**
-• `/trackbet sport team odds stake` - Track your bets
-• `/mystats` - Performance analytics & ROI
+• `/trackbet [sport] [team] [odds] [stake]` - Track bets
+• `/mystats` - Performance analytics
 • `/pending` - View active bets
 
-**🏆 SPECIALIZED:**
-• `/horses` - Horse racing predictions (UK/US/AUS)
+**🌍 SUPPORTED SPORTS:**
+⚽ Soccer: EPL, La Liga, Serie A, Bundesliga, Champions League
+🏀 Basketball: NBA, EuroLeague, NCAA
+🏈 American Football: NFL, NCAA
+⚾ Baseball: MLB, NPB
+🏒 Hockey: NHL, KHL
+🎾 Tennis: ATP, WTA
+🥊 Combat: UFC, Boxing
+🏏 Cricket: IPL, Test, ODI
+🐎 Racing: UK, US, Australia tracks
 
-**📈 ALGORITHM FEATURES:**
-✓ Kelly Criterion optimal bet sizing
-✓ Expected Value calculations
-✓ Market inefficiency detection
-✓ 85-92% accuracy rate
-✓ Professional risk management
-
-**EXAMPLE USAGE:**
-• `/predictions soccer_epl` - Premier League
+**📖 EXAMPLES:**
+• `/predictions soccer_epl` - Premier League predictions
 • `/advanced basketball_nba` - NBA Kelly analysis
-• `/trackbet soccer Arsenal 2.10 25` - Track £25 bet
-• `/scores americanfootball_nfl` - NFL exact scores
+• `/scores soccer_champions_league` - UCL exact scores
+• `/trackbet soccer Liverpool 2.10 50` - Track £50 bet
 
-**60+ SPORTS SUPPORTED:**
-Soccer, Basketball, Tennis, Boxing, MMA, Cricket, Horse Racing, F1, Golf, Baseball, Hockey, and many more.
-
-*Professional betting strategies with mathematical edge detection.*"""
+*Professional betting with mathematical edge detection.*"""
+        
         await update.message.reply_text(help_text, parse_mode=ParseMode.MARKDOWN)
-    
+
     async def error_handler(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
-        logger.error(f"Error: {context.error}")
+        logger.error(f"Update {update} caused error {context.error}")
         if update and update.message:
-            await update.message.reply_text("❌ An error occurred. Please try again or use /help.")
+            await update.message.reply_text("❌ An error occurred. Please try again.")
