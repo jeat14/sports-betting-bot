@@ -49,7 +49,9 @@ def main():
         application.add_handler(CommandHandler("scores", handlers.scores_command))
         application.add_handler(CommandHandler("games", handlers.games_command))
         application.add_handler(CommandHandler("today", handlers.today_command))
-        
+application.add_handler(CommandHandler("advanced", handlers.advanced_predictions_command))
+application.add_handler(CommandHandler("trackbet", handlers.track_bet_command))
+application.add_handler(CommandHandler("mystats", handlers.my_stats_command))        
         # Register callback query handler for inline buttons
         application.add_handler(CallbackQueryHandler(handlers.button_callback))
         
