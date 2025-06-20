@@ -908,19 +908,7 @@ class BotHandlers:
             await update.message.reply_text("⚽ Analyzing FIFA Club World Cup opportunities...")
             
             fifa_analyzer = FIFAClubWorldCupAnalyzer()
-            analysis = fifa_analyzer.analyze_tournament_opportunities()
-            
-            if analysis and analysis.get('opportunities'):
-                report = "⚽ FIFA CLUB WORLD CUP ANALYSIS ⚽\n\n"
-                for opp in analysis['opportunities'][:3]:  # Top 3 opportunities
-                    report += f"🏆 {opp.get('match', 'Match')}\n"
-                    report += f"📊 Value Score: {opp.get('value_score', 0)}/10\n"
-                    report += f"💰 Best Bet: {opp.get('recommendation', 'N/A')}\n"
-                    report += f"🎯 Confidence: {opp.get('confidence', 'N/A')}\n\n"
-                
-                report += "💡 Analysis based on team form, historical performance, and tournament dynamics."
-            else:
-                report = "⚽ FIFA Club World Cup analysis:\n\nNo current tournament matches available for analysis."
+            report = fifa_analyzer.generate_fifa_report()
             
             await update.message.reply_text(report)
             
