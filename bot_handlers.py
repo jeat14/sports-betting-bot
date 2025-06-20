@@ -24,7 +24,7 @@ logger = logging.getLogger(__name__)
 class BotHandlers:
     def __init__(self):
         self.odds_service = OddsService()
-        self.prediction_engine = PredictionEngine()
+        self.prediction_engine = PredictionEngine(self.odds_service)
         self.score_predictor = ScorePredictor()
         self.advanced_prediction_engine = AdvancedPredictionEngine()
         self.betting_tracker = BettingTracker()
