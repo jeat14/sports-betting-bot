@@ -43,15 +43,35 @@ class FIFAClubWorldCupAnalyzer:
         return self.analyze_fifa_opportunities()
     
     def analyze_fifa_opportunities(self) -> Dict:
-        """Comprehensive FIFA Club World Cup analysis for maximum winning"""
+        """Comprehensive FIFA and major soccer tournament analysis for maximum winning"""
         try:
-            games = self.odds_service.get_odds('soccer_fifa_club_world_cup')
+            # Check multiple FIFA/major soccer competitions
+            fifa_tournaments = [
+                'soccer_fifa_club_world_cup',
+                'soccer_fifa_world_cup', 
+                'soccer_uefa_champs_league',
+                'soccer_uefa_europa_league',
+                'soccer_epl',
+                'soccer_spain_la_liga'
+            ]
             
-            # Handle case when tournament is not active
+            games = []
+            active_tournament = None
+            
+            # Find active tournament with games
+            for tournament in fifa_tournaments:
+                tournament_games = self.odds_service.get_odds(tournament)
+                if tournament_games and len(tournament_games) > 0:
+                    games = tournament_games[:5]  # Limit to 5 games for analysis
+                    active_tournament = tournament
+                    break
+            
+            # Handle case when no tournaments are active
             if not games or len(games) == 0:
                 return self._generate_tournament_framework()
             
             analysis = {
+                'tournament': active_tournament,
                 'total_games': len(games),
                 'mismatch_opportunities': [],
                 'arbitrage_opportunities': [],
@@ -126,6 +146,39 @@ class FIFAClubWorldCupAnalyzer:
                 'value_opportunities': 'Look for overpriced underdogs with realistic chances'
             }
         }
+    
+    def _format_tournament_framework(self, analysis: Dict) -> str:
+        """Format tournament framework for display when live games unavailable"""
+        try:
+            report = "⚽ MAJOR SOCCER TOURNAMENT ANALYSIS ⚽\n\n"
+            
+            if analysis.get('opportunities'):
+                report += "🎯 STRATEGIC OPPORTUNITIES:\n"
+                for i, opp in enumerate(analysis['opportunities'], 1):
+                    report += f"{i}. {opp['match']}\n"
+                    report += f"   📊 Value Score: {opp['value_score']}/10\n"
+                    report += f"   💡 Strategy: {opp['recommendation']}\n"
+                    report += f"   🎯 Confidence: {opp['confidence']}\n\n"
+            
+            if analysis.get('strategic_insights'):
+                report += "🧠 TOURNAMENT INSIGHTS:\n"
+                for insight in analysis['strategic_insights']:
+                    report += f"• {insight}\n"
+                report += "\n"
+            
+            if analysis.get('betting_framework'):
+                framework = analysis['betting_framework']
+                report += "🚀 BETTING FRAMEWORK:\n"
+                report += f"• Strength Analysis: {framework.get('strength_tier_analysis', 'N/A')}\n"
+                report += f"• Tournament Dynamics: {framework.get('tournament_dynamics', 'N/A')}\n"
+                report += f"• Value Opportunities: {framework.get('value_opportunities', 'N/A')}\n\n"
+            
+            report += "💡 Analysis provides strategic framework for when live games are available."
+            return report
+            
+        except Exception as e:
+            logger.error(f"Error formatting tournament framework: {e}")
+            return "⚽ Tournament analysis framework temporarily unavailable."
     
     def _identify_strength_mismatches(self, games: List[Dict]) -> List[Dict]:
         """Identify matches with significant team strength disparities"""
@@ -355,7 +408,22 @@ class FIFAClubWorldCupAnalyzer:
             if 'error' in analysis:
                 return f"Error generating FIFA Club World Cup report: {analysis['error']}"
             
-            report = "🏆 FIFA CLUB WORLD CUP - SPECIALIZED WINNING SYSTEM\n\n"
+            # Handle framework mode
+            if analysis.get('tournament_status') == 'FRAMEWORK_MODE':
+                return self._format_tournament_framework(analysis)
+            
+            # Get tournament name for display
+            tournament_name = analysis.get('tournament', 'soccer_fifa_club_world_cup')
+            tournament_display = {
+                'soccer_fifa_club_world_cup': 'FIFA CLUB WORLD CUP',
+                'soccer_fifa_world_cup': 'FIFA WORLD CUP',
+                'soccer_uefa_champs_league': 'UEFA CHAMPIONS LEAGUE',
+                'soccer_uefa_europa_league': 'UEFA EUROPA LEAGUE',
+                'soccer_epl': 'PREMIER LEAGUE',
+                'soccer_spain_la_liga': 'LA LIGA'
+            }.get(tournament_name, 'MAJOR SOCCER TOURNAMENT')
+            
+            report = f"🏆 {tournament_display} - SPECIALIZED WINNING SYSTEM\n\n"
             
             # Tournament overview
             report += f"📊 TOURNAMENT OVERVIEW:\n"
