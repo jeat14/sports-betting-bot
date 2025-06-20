@@ -1,9 +1,6 @@
 #!/usr/bin/env python3
 """
-Sports Betting Predictions Telegram Bot - Heroku Version
-
-This bot fetches live sports odds and provides betting predictions
-based on odds analysis from multiple bookmakers.
+Sports Betting Predictions Telegram Bot - Heroku Production Version
 """
 
 import logging
@@ -20,20 +17,11 @@ logging.basicConfig(
 logger = logging.getLogger(__name__)
 
 async def error_handler(update: object, context) -> None:
-    """Log the error and send a telegram message to notify the developer."""
+    """Production error handler with proper logging"""
     logger.error(msg="Exception while handling an update:", exc_info=context.error)
-    
-    if update and hasattr(update, 'effective_message') and update.effective_message:
-        try:
-            await update.effective_message.reply_text(
-                "❌ An error occurred while processing your request. Please try again."
-            )
-        except Exception as e:
-            logger.error(f"Failed to send error message: {e}")
 
 def main():
-    """Start the bot"""
-    # Get environment variables
+    """Start the institutional-grade sports betting bot"""
     token = os.getenv('TELEGRAM_BOT_TOKEN')
     if not token:
         raise ValueError("TELEGRAM_BOT_TOKEN environment variable is required")
@@ -42,13 +30,10 @@ def main():
     if not odds_api_key:
         raise ValueError("ODDS_API_KEY environment variable is required")
     
-    # Create application
     application = Application.builder().token(token).build()
-    
-    # Initialize handlers
     handlers = BotHandlers()
     
-    # Register command handlers
+    # Register all command handlers
     application.add_handler(CommandHandler("start", handlers.start_command))
     application.add_handler(CommandHandler("help", handlers.help_command))
     application.add_handler(CommandHandler("sports", handlers.sports_command))
@@ -63,31 +48,23 @@ def main():
     application.add_handler(CommandHandler("pending", handlers.pending_bets_command))
     application.add_handler(CommandHandler("horses", handlers.horse_racing_command))
     application.add_handler(CommandHandler("allsports", handlers.all_sports_command))
+    application.add_handler(CommandHandler("arbitrage", handlers.arbitrage_command))
+    application.add_handler(CommandHandler("bankroll", handlers.bankroll_command))
+    application.add_handler(CommandHandler("steam", handlers.steam_moves_command))
+    application.add_handler(CommandHandler("edges", handlers.mathematical_edges_command))
+    application.add_handler(CommandHandler("intelligence", handlers.insider_intelligence_command))
+    application.add_handler(CommandHandler("fifa", handlers.fifa_world_cup_command))
+    application.add_handler(CommandHandler("scan", handlers.multi_sport_scan_command))
     
-    # Register callback query handler for inline keyboards
     application.add_handler(CallbackQueryHandler(handlers.button_callback))
-    
-    # Register message handler for unknown commands
-    async def unknown_command(update: Update, context):
-        await update.message.reply_text(
-            "❓ Unknown command. Use /help to see available commands."
-        )
-    
-    application.add_handler(MessageHandler(filters.COMMAND, unknown_command))
-    
-    # Register error handler
     application.add_error_handler(error_handler)
     
-    # Start the bot
     logger.info("Starting Sports Betting Predictions Bot...")
-    port = int(os.environ.get('PORT', 5000))
     
-    # Use webhook for Heroku
-    application.run_webhook(
-        listen="0.0.0.0",
-        port=port,
-        url_path=token,
-        webhook_url=f"https://{os.environ.get('HEROKU_APP_NAME')}.herokuapp.com/{token}"
+    # CRITICAL: Use polling instead of webhooks for Heroku
+    application.run_polling(
+        allowed_updates=Update.ALL_TYPES,
+        drop_pending_updates=True
     )
 
 if __name__ == '__main__':
