@@ -45,6 +45,10 @@ class MultiSportScanner:
             'mma_mixed_martial_arts': {'priority': 5, 'min_bookmakers': 8, 'value_threshold': 5.0}
         }
     
+    def scan_all_sports(self) -> Dict[str, Dict]:
+        """Scan all sports for opportunities - Bot handler method"""
+        return self.scan_all_premium_sports()
+    
     def scan_all_premium_sports(self) -> Dict[str, Dict]:
         """Scan all premium sports simultaneously for maximum advantage detection"""
         try:
@@ -274,6 +278,10 @@ class MultiSportScanner:
         except Exception as e:
             logger.error(f"Error getting priority opportunities: {e}")
             return []
+    
+    def generate_master_opportunity_report(self, scan_results: Dict) -> str:
+        """Generate comprehensive multi-sport opportunity report - Bot handler method"""
+        return self.generate_master_report()
     
     def generate_master_report(self) -> str:
         """Generate comprehensive master report across all sports"""
