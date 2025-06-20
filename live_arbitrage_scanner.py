@@ -32,6 +32,28 @@ class LiveArbitrageScanner:
             'pointsbet': 7, 'barstool': 7, 'unibet': 8, 'betrivers': 7
         }
     
+    def scan_live_opportunities(self, sport_keys: List[str]) -> List[Dict]:
+        """Scan multiple sports for live arbitrage opportunities - Bot handler method"""
+        all_opportunities = []
+        for sport_key in sport_keys:
+            opportunities = self.scan_live_arbitrage(sport_key)
+            all_opportunities.extend(opportunities)
+        return sorted(all_opportunities, key=lambda x: x.get('profit_percentage', 0), reverse=True)[:5]
+    
+    def format_live_opportunities(self, opportunities: List[Dict]) -> str:
+        """Format arbitrage opportunities for display - Bot handler method"""
+        if not opportunities:
+            return "🎯 No arbitrage opportunities detected at this time.\n\nArbitrage opportunities provide guaranteed profit regardless of outcome."
+        
+        report = "🎯 LIVE ARBITRAGE OPPORTUNITIES 🎯\n\n"
+        for i, opp in enumerate(opportunities[:3], 1):
+            report += f"{i}. {opp.get('game', 'Game')}\n"
+            report += f"💰 Profit: {opp.get('profit_percentage', 0):.2f}%\n"
+            report += f"🎯 Strategy: {opp.get('strategy', 'N/A')}\n\n"
+        
+        report += "💡 Arbitrage provides guaranteed profit by betting on all outcomes across different bookmakers."
+        return report
+    
     def scan_live_arbitrage(self, sport_key: str) -> List[Dict]:
         """Scan for live arbitrage opportunities with guaranteed profit"""
         try:
