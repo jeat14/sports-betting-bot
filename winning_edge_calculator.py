@@ -21,6 +21,10 @@ class WinningEdgeCalculator:
     def __init__(self):
         self.odds_service = OddsService()
         
+    def calculate_sport_edges(self, sport_key: str) -> List[Dict]:
+        """Calculate mathematical edges for all games in a sport - Bot handler method"""
+        return self.calculate_maximum_edge_opportunities(sport_key)
+    
     def calculate_maximum_edge_opportunities(self, sport_key: str) -> List[Dict]:
         """Find bets with highest mathematical edge using advanced probability models"""
         try:
