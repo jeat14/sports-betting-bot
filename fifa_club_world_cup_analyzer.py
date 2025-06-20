@@ -180,6 +180,42 @@ class FIFAClubWorldCupAnalyzer:
             logger.error(f"Error formatting tournament framework: {e}")
             return "⚽ Tournament analysis framework temporarily unavailable."
     
+    def _extract_best_odds(self, game: Dict) -> Optional[Dict]:
+        """Extract best available odds for home and away teams"""
+        try:
+            bookmakers = game.get('bookmakers', [])
+            if not bookmakers:
+                return None
+            
+            home_odds = []
+            away_odds = []
+            home_team = game.get('home_team', '')
+            away_team = game.get('away_team', '')
+            
+            for bm in bookmakers:
+                for market in bm.get('markets', []):
+                    if market['key'] == 'h2h':
+                        for outcome in market['outcomes']:
+                            if outcome['name'] == home_team:
+                                home_odds.append(outcome['price'])
+                            elif outcome['name'] == away_team:
+                                away_odds.append(outcome['price'])
+            
+            if home_odds and away_odds:
+                return {
+                    'home_odds': max(home_odds),  # Best odds for home team
+                    'away_odds': max(away_odds),  # Best odds for away team
+                    'home_odds_avg': round(sum(home_odds) / len(home_odds), 2),
+                    'away_odds_avg': round(sum(away_odds) / len(away_odds), 2),
+                    'bookmaker_count': len(bookmakers)
+                }
+            
+            return None
+            
+        except Exception as e:
+            logger.error(f"Error extracting best odds: {e}")
+            return None
+    
     def _identify_strength_mismatches(self, games: List[Dict]) -> List[Dict]:
         """Identify matches with significant team strength disparities"""
         mismatches = []
@@ -432,6 +468,38 @@ class FIFAClubWorldCupAnalyzer:
             report += f"• Arbitrage opportunities: {len(analysis['arbitrage_opportunities'])}\n"
             report += f"• Value betting opportunities: {len(analysis['value_bets'])}\n\n"
             
+            # Show actual games found first
+            if analysis.get('total_games', 0) > 0:
+                report += f"🎮 LIVE GAMES FOUND ({tournament_display}):\n"
+                
+                # Get first few games to display
+                try:
+                    fifa_tournaments = [
+                        'soccer_fifa_club_world_cup', 'soccer_uefa_champs_league',
+                        'soccer_uefa_europa_league', 'soccer_epl', 'soccer_spain_la_liga'
+                    ]
+                    
+                    for tournament in fifa_tournaments:
+                        games = self.odds_service.get_odds(tournament)
+                        if games and len(games) > 0:
+                            for i, game in enumerate(games[:3], 1):
+                                home_team = game.get('home_team', 'Team A')
+                                away_team = game.get('away_team', 'Team B')
+                                commence_time = game.get('commence_time', 'TBD')
+                                
+                                # Get best odds
+                                best_odds = self._extract_best_odds(game)
+                                if best_odds:
+                                    report += f"{i}. {home_team} vs {away_team}\n"
+                                    report += f"   🏠 {home_team}: {best_odds.get('home_odds', 'N/A')}\n"
+                                    report += f"   ✈️ {away_team}: {best_odds.get('away_odds', 'N/A')}\n"
+                                    if commence_time != 'TBD':
+                                        report += f"   ⏰ {commence_time[:16]}\n"
+                                    report += "\n"
+                            break
+                except Exception as e:
+                    logger.error(f"Error displaying games: {e}")
+                    
             # Mismatch opportunities (highest priority)
             if analysis['mismatch_opportunities']:
                 report += "🎯 TEAM STRENGTH MISMATCHES (HIGHEST WIN PROBABILITY):\n"
