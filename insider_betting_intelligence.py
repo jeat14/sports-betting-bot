@@ -1,379 +1,365 @@
 #!/usr/bin/env python3
 """
-Insider Betting Intelligence System
+FIFA Club World Cup Specialized Winning System
 
-Advanced market analysis that mimics institutional betting intelligence:
-- Opening vs Closing line movement tracking
-- Public betting percentage vs line movement correlation
-- Weather and injury impact modeling for outdoor sports
-- Historical situational betting patterns
-- Market maker identification and following
+Optimized strategies for FIFA Club World Cup matches based on:
+- Tournament structure and format
+- Team strength disparities 
+- Regional champion dynamics
+- Historical performance patterns
 """
 
 import logging
 from typing import Dict, List, Optional
-from datetime import datetime, timezone, timedelta
+from datetime import datetime, timezone
 from odds_service import OddsService
+from arbitrage_detector import ArbitrageDetector
 
 logger = logging.getLogger(__name__)
 
-class InsiderBettingIntelligence:
+class FIFAClubWorldCupAnalyzer:
     def __init__(self):
         self.odds_service = OddsService()
-        self.historical_tracking = {}
+        self.arbitrage_detector = ArbitrageDetector()
         
-        # Professional betting situations that create edges
-        self.high_value_situations = {
-            'division_rivals': ['within same division', 'rivalry game'],
-            'playoff_implications': ['playoff spot', 'elimination game'],
-            'coaching_changes': ['new coach', 'interim coach'],
-            'key_injuries': ['star player out', 'starting lineup changes'],
-            'travel_factors': ['back to back', 'cross country travel'],
-            'weather_impact': ['rain', 'wind', 'cold weather']
-        }
+        # Team strength tiers based on regional champions
+        self.elite_european_clubs = [
+            'Real Madrid', 'Manchester City', 'Chelsea', 'Bayern Munich', 
+            'Liverpool', 'Barcelona', 'PSG', 'Inter Milan', 'AC Milan'
+        ]
+        
+        self.strong_south_american = [
+            'Flamengo', 'Palmeiras', 'River Plate', 'Boca Juniors',
+            'Atletico Mineiro', 'Santos', 'Internacional'
+        ]
+        
+        self.other_continental_champions = [
+            'Al Hilal', 'Urawa Red Diamonds', 'Auckland City FC',
+            'Wydad Casablanca', 'Seattle Sounders', 'Monterrey'
+        ]
     
-    def analyze_professional_patterns(self, sport_key: str) -> List[Dict]:
-        """Analyze professional betting patterns - Bot handler method"""
-        return self.analyze_insider_opportunities(sport_key)
+    def analyze_tournament_opportunities(self) -> Dict:
+        """Analyze FIFA Club World Cup tournament opportunities - Bot handler method"""
+        return self.analyze_fifa_opportunities()
     
-    def analyze_insider_opportunities(self, sport_key: str) -> List[Dict]:
-        """Identify betting opportunities using insider market intelligence"""
+    def analyze_fifa_opportunities(self) -> Dict:
+        """Comprehensive FIFA Club World Cup analysis for maximum winning"""
         try:
-            games = self.odds_service.get_odds(sport_key)
-            insider_opportunities = []
+            games = self.odds_service.get_odds('soccer_fifa_club_world_cup')
             
-            for game in games:
-                analysis = self._comprehensive_insider_analysis(game, sport_key)
-                if analysis and analysis['opportunity_score'] > 70:
-                    insider_opportunities.append(analysis)
+            analysis = {
+                'total_games': len(games),
+                'mismatch_opportunities': [],
+                'arbitrage_opportunities': [],
+                'value_bets': [],
+                'tournament_insights': [],
+                'recommended_strategies': []
+            }
             
-            return sorted(insider_opportunities, key=lambda x: x['opportunity_score'], reverse=True)[:3]
+            # Find team strength mismatches
+            mismatch_opps = self._identify_strength_mismatches(games)
+            analysis['mismatch_opportunities'] = mismatch_opps
+            
+            # Find arbitrage opportunities
+            arbitrage_opps = self.arbitrage_detector.find_arbitrage_opportunities('soccer_fifa_club_world_cup')
+            analysis['arbitrage_opportunities'] = arbitrage_opps[:3]
+            
+            # Identify value betting opportunities
+            value_opps = self._find_value_opportunities(games)
+            analysis['value_bets'] = value_opps
+            
+            # Generate tournament-specific insights
+            insights = self._generate_tournament_insights(games)
+            analysis['tournament_insights'] = insights
+            
+            # Create winning strategies
+            strategies = self._create_winning_strategies(analysis)
+            analysis['recommended_strategies'] = strategies
+            
+            return analysis
             
         except Exception as e:
-            logger.error(f"Error in insider analysis: {e}")
-            return []
+            logger.error(f"Error analyzing FIFA Club World Cup: {e}")
+            return {'error': str(e)}
     
-    def _comprehensive_insider_analysis(self, game: Dict, sport_key: str) -> Optional[Dict]:
-        """Perform comprehensive insider market analysis"""
-        try:
+    def _identify_strength_mismatches(self, games: List[Dict]) -> List[Dict]:
+        """Identify matches with significant team strength disparities"""
+        mismatches = []
+        
+        for game in games:
             home_team = game.get('home_team', '')
             away_team = game.get('away_team', '')
             
-            # Analyze market efficiency indicators
-            market_analysis = self._analyze_market_efficiency(game)
-            if not market_analysis:
+            home_tier = self._get_team_tier(home_team)
+            away_tier = self._get_team_tier(away_team)
+            
+            # Significant mismatch if tier difference >= 2
+            if abs(home_tier - away_tier) >= 2:
+                stronger_team = home_team if home_tier < away_tier else away_team
+                weaker_team = away_team if home_tier < away_tier else home_team
+                
+                # Get odds for the mismatch
+                odds_data = self._extract_mismatch_odds(game, stronger_team, weaker_team)
+                
+                if odds_data:
+                    mismatch = {
+                        'game': f"{home_team} vs {away_team}",
+                        'commence_time': game.get('commence_time'),
+                        'stronger_team': stronger_team,
+                        'weaker_team': weaker_team,
+                        'tier_difference': abs(home_tier - away_tier),
+                        'stronger_team_odds': odds_data['stronger_odds'],
+                        'weaker_team_odds': odds_data['weaker_odds'],
+                        'implied_probability': round(1/odds_data['stronger_odds'] * 100, 1),
+                        'value_assessment': self._assess_mismatch_value(odds_data, abs(home_tier - away_tier)),
+                        'recommendation': 'STRONG BET' if odds_data['stronger_odds'] > 1.30 else 'MONITOR'
+                    }
+                    mismatches.append(mismatch)
+        
+        return sorted(mismatches, key=lambda x: x['tier_difference'], reverse=True)
+    
+    def _get_team_tier(self, team_name: str) -> int:
+        """Get team tier (1=Elite, 2=Strong, 3=Average, 4=Weak)"""
+        team_lower = team_name.lower()
+        
+        # Elite European clubs
+        if any(club.lower() in team_lower for club in self.elite_european_clubs):
+            return 1
+        
+        # Strong South American clubs
+        if any(club.lower() in team_lower for club in self.strong_south_american):
+            return 2
+        
+        # Other continental champions
+        if any(club.lower() in team_lower for club in self.other_continental_champions):
+            return 3
+        
+        # Unknown/weaker teams
+        return 4
+    
+    def _extract_mismatch_odds(self, game: Dict, stronger_team: str, weaker_team: str) -> Optional[Dict]:
+        """Extract odds for team strength mismatch analysis"""
+        try:
+            bookmakers = game.get('bookmakers', [])
+            if not bookmakers:
                 return None
             
-            # Check for professional betting patterns
-            pro_patterns = self._detect_professional_patterns(game, sport_key)
+            stronger_odds = []
+            weaker_odds = []
             
-            # Situational analysis
-            situational_edge = self._analyze_situational_factors(game, sport_key)
+            for bm in bookmakers:
+                for market in bm.get('markets', []):
+                    if market['key'] == 'h2h':
+                        for outcome in market['outcomes']:
+                            if stronger_team.lower() in outcome['name'].lower():
+                                stronger_odds.append(outcome['price'])
+                            elif weaker_team.lower() in outcome['name'].lower():
+                                weaker_odds.append(outcome['price'])
             
-            # Line movement analysis
-            movement_analysis = self._analyze_line_movement_intelligence(game)
-            
-            # Calculate composite opportunity score
-            opportunity_score = self._calculate_opportunity_score(
-                market_analysis, pro_patterns, situational_edge, movement_analysis
-            )
-            
-            if opportunity_score > 70:
+            if stronger_odds and weaker_odds:
                 return {
-                    'game': f"{home_team} vs {away_team}",
-                    'commence_time': game.get('commence_time'),
-                    'opportunity_score': opportunity_score,
-                    'market_efficiency': market_analysis['efficiency_rating'],
-                    'professional_indicators': pro_patterns,
-                    'situational_factors': situational_edge,
-                    'line_movement': movement_analysis,
-                    'recommended_action': self._generate_recommendation(opportunity_score, market_analysis),
-                    'confidence_level': self._determine_confidence(opportunity_score),
-                    'insider_edge': self._calculate_insider_edge(market_analysis, pro_patterns)
+                    'stronger_odds': max(stronger_odds),  # Best odds for stronger team
+                    'weaker_odds': min(weaker_odds),      # Conservative odds for weaker team
+                    'stronger_odds_avg': sum(stronger_odds) / len(stronger_odds),
+                    'weaker_odds_avg': sum(weaker_odds) / len(weaker_odds)
                 }
             
             return None
             
         except Exception as e:
-            logger.error(f"Error in comprehensive insider analysis: {e}")
+            logger.error(f"Error extracting mismatch odds: {e}")
             return None
     
-    def _analyze_market_efficiency(self, game: Dict) -> Optional[Dict]:
-        """Analyze market efficiency to identify soft spots"""
+    def _assess_mismatch_value(self, odds_data: Dict, tier_diff: int) -> str:
+        """Assess value of betting on stronger team in mismatch"""
+        stronger_odds = odds_data['stronger_odds']
+        implied_prob = 1 / stronger_odds
+        
+        # Expected probability based on tier difference
+        if tier_diff >= 3:
+            expected_prob = 0.85  # 85% chance
+        elif tier_diff == 2:
+            expected_prob = 0.75  # 75% chance
+        else:
+            expected_prob = 0.65  # 65% chance
+        
+        # Calculate value
+        if implied_prob < expected_prob:
+            value_percentage = ((expected_prob - implied_prob) / implied_prob) * 100
+            if value_percentage > 20:
+                return f"EXCELLENT VALUE ({value_percentage:.1f}% edge)"
+            elif value_percentage > 10:
+                return f"GOOD VALUE ({value_percentage:.1f}% edge)"
+            else:
+                return f"FAIR VALUE ({value_percentage:.1f}% edge)"
+        else:
+            return "OVERPRICED - AVOID"
+    
+    def _find_value_opportunities(self, games: List[Dict]) -> List[Dict]:
+        """Find value betting opportunities in FIFA Club World Cup"""
+        value_bets = []
+        
+        for game in games:
+            home_team = game.get('home_team', '')
+            away_team = game.get('away_team', '')
+            
+            # Check for high odds variance (market disagreement)
+            odds_analysis = self._analyze_odds_variance(game)
+            
+            if odds_analysis and odds_analysis['max_variance'] > 0.25:
+                value_bet = {
+                    'game': f"{home_team} vs {away_team}",
+                    'commence_time': game.get('commence_time'),
+                    'opportunity_type': 'High Variance',
+                    'details': odds_analysis,
+                    'recommendation': 'Monitor for live betting opportunities',
+                    'confidence': 'MEDIUM'
+                }
+                value_bets.append(value_bet)
+        
+        return value_bets[:3]
+    
+    def _analyze_odds_variance(self, game: Dict) -> Optional[Dict]:
+        """Analyze odds variance across bookmakers"""
         try:
             bookmakers = game.get('bookmakers', [])
-            if len(bookmakers) < 6:
+            if len(bookmakers) < 5:
                 return None
             
             home_odds = []
             away_odds = []
             
             for bm in bookmakers:
-                bm_name = bm.get('title', '').lower()
-                for market in bm.get('markets', []):
-                    if market['key'] == 'h2h':
-                        for outcome in market['outcomes']:
-                            price = outcome['price']
-                            if price <= 1.0 or price > 15.0:
-                                continue
-                            
-                            if outcome['name'] == game.get('home_team'):
-                                home_odds.append({'price': price, 'bookmaker': bm_name})
-                            elif outcome['name'] == game.get('away_team'):
-                                away_odds.append({'price': price, 'bookmaker': bm_name})
-            
-            if len(home_odds) < 4 or len(away_odds) < 4:
-                return None
-            
-            # Identify sharp vs soft bookmakers
-            sharp_books = ['pinnacle', 'betfair', 'circa', 'bookmaker']
-            soft_books = ['draftkings', 'fanduel', 'betmgm', 'caesars']
-            
-            sharp_home = [o['price'] for o in home_odds if any(sharp in o['bookmaker'] for sharp in sharp_books)]
-            soft_home = [o['price'] for o in home_odds if any(soft in o['bookmaker'] for soft in soft_books)]
-            
-            if len(sharp_home) >= 2 and len(soft_home) >= 2:
-                sharp_avg = sum(sharp_home) / len(sharp_home)
-                soft_avg = sum(soft_home) / len(soft_home)
-                
-                # Market inefficiency = significant difference between sharp and soft
-                inefficiency = abs(sharp_avg - soft_avg) / min(sharp_avg, soft_avg)
-                
-                return {
-                    'inefficiency_percentage': round(inefficiency * 100, 2),
-                    'sharp_average': round(sharp_avg, 2),
-                    'soft_average': round(soft_avg, 2),
-                    'efficiency_rating': 'LOW' if inefficiency > 0.08 else 'MEDIUM' if inefficiency > 0.04 else 'HIGH',
-                    'opportunity_side': 'soft_books' if soft_avg > sharp_avg else 'sharp_books'
-                }
-            
-            return None
-            
-        except Exception as e:
-            logger.error(f"Error analyzing market efficiency: {e}")
-            return None
-    
-    def _detect_professional_patterns(self, game: Dict, sport_key: str) -> Dict:
-        """Detect patterns indicating professional betting activity"""
-        patterns = {
-            'steam_indicators': 0,
-            'reverse_line_movement': 0,
-            'syndicate_markers': 0,
-            'total_score': 0
-        }
-        
-        try:
-            bookmakers = game.get('bookmakers', [])
-            if len(bookmakers) < 8:
-                return patterns
-            
-            # Check for steam (rapid line movement)
-            home_odds = [outcome['price'] for bm in bookmakers 
-                        for market in bm.get('markets', []) if market['key'] == 'h2h'
-                        for outcome in market['outcomes'] 
-                        if outcome['name'] == game.get('home_team')]
-            
-            if len(home_odds) >= 8:
-                odds_range = (max(home_odds) - min(home_odds)) / min(home_odds)
-                if odds_range > 0.15:  # Significant variance suggests steam
-                    patterns['steam_indicators'] = 25
-            
-            # Check for reverse line movement (line moves opposite to public expectation)
-            # This is simplified - real implementation would need public betting data
-            if len(home_odds) >= 10:
-                median_odds = sorted(home_odds)[len(home_odds)//2]
-                outlier_count = sum(1 for odds in home_odds if abs(odds - median_odds) > median_odds * 0.1)
-                if outlier_count >= 3:
-                    patterns['reverse_line_movement'] = 20
-            
-            # Syndicate markers (professional betting signatures)
-            if sport_key in ['baseball_mlb', 'basketball_nba']:
-                # These sports have more professional action
-                patterns['syndicate_markers'] = 15
-            
-            patterns['total_score'] = sum(patterns.values())
-            return patterns
-            
-        except Exception as e:
-            logger.error(f"Error detecting professional patterns: {e}")
-            return patterns
-    
-    def _analyze_situational_factors(self, game: Dict, sport_key: str) -> Dict:
-        """Analyze situational factors that create betting edges"""
-        factors = {
-            'schedule_advantage': 0,
-            'motivational_factors': 0,
-            'weather_impact': 0,
-            'total_score': 0
-        }
-        
-        try:
-            game_time = game.get('commence_time', '')
-            if game_time:
-                game_dt = datetime.fromisoformat(game_time.replace('Z', '+00:00'))
-                
-                # Schedule analysis
-                if sport_key in ['basketball_nba', 'icehockey_nhl']:
-                    # Back-to-back games create fatigue edges
-                    factors['schedule_advantage'] = 15
-                
-                # Time zone factors
-                now_utc = datetime.now(timezone.utc)
-                if game_dt.hour < 6 or game_dt.hour > 22:  # Late/early games
-                    factors['schedule_advantage'] += 10
-                
-                # Motivational factors (simplified)
-                if 'playoff' in game.get('home_team', '').lower() or 'playoff' in game.get('away_team', '').lower():
-                    factors['motivational_factors'] = 20
-                
-                # Weather impact for outdoor sports
-                if sport_key in ['americanfootball_nfl', 'baseball_mlb']:
-                    factors['weather_impact'] = 10
-            
-            factors['total_score'] = sum(factors.values())
-            return factors
-            
-        except Exception as e:
-            logger.error(f"Error analyzing situational factors: {e}")
-            return factors
-    
-    def _analyze_line_movement_intelligence(self, game: Dict) -> Dict:
-        """Analyze line movement for insider intelligence"""
-        movement = {
-            'significant_moves': 0,
-            'sharp_money_indicators': 0,
-            'total_score': 0
-        }
-        
-        try:
-            bookmakers = game.get('bookmakers', [])
-            if len(bookmakers) < 8:
-                return movement
-            
-            # Analyze odds distribution for movement patterns
-            home_odds = []
-            for bm in bookmakers:
                 for market in bm.get('markets', []):
                     if market['key'] == 'h2h':
                         for outcome in market['outcomes']:
                             if outcome['name'] == game.get('home_team'):
                                 home_odds.append(outcome['price'])
+                            elif outcome['name'] == game.get('away_team'):
+                                away_odds.append(outcome['price'])
             
-            if len(home_odds) >= 8:
-                # Check for significant line movement
-                variance = max(home_odds) - min(home_odds)
-                if variance > 0.3:
-                    movement['significant_moves'] = 20
+            if len(home_odds) >= 5 and len(away_odds) >= 5:
+                home_variance = (max(home_odds) - min(home_odds)) / min(home_odds)
+                away_variance = (max(away_odds) - min(away_odds)) / min(away_odds)
                 
-                # Sharp money typically creates tighter lines
-                if variance < 0.1:
-                    movement['sharp_money_indicators'] = 15
+                return {
+                    'home_odds_range': f"{min(home_odds):.2f} - {max(home_odds):.2f}",
+                    'away_odds_range': f"{min(away_odds):.2f} - {max(away_odds):.2f}",
+                    'home_variance': home_variance,
+                    'away_variance': away_variance,
+                    'max_variance': max(home_variance, away_variance)
+                }
             
-            movement['total_score'] = sum(movement.values())
-            return movement
+            return None
             
         except Exception as e:
-            logger.error(f"Error analyzing line movement: {e}")
-            return movement
+            logger.error(f"Error analyzing odds variance: {e}")
+            return None
     
-    def _calculate_opportunity_score(self, market_analysis: Dict, pro_patterns: Dict, 
-                                   situational_edge: Dict, movement_analysis: Dict) -> int:
-        """Calculate composite opportunity score"""
-        base_score = 0
+    def _generate_tournament_insights(self, games: List[Dict]) -> List[str]:
+        """Generate FIFA Club World Cup specific insights"""
+        insights = []
         
-        # Market efficiency component
-        if market_analysis.get('efficiency_rating') == 'LOW':
-            base_score += 30
-        elif market_analysis.get('efficiency_rating') == 'MEDIUM':
-            base_score += 15
+        # Count games by type
+        elite_vs_weak = 0
+        close_matches = 0
+        total_games = len(games)
         
-        # Professional patterns
-        base_score += pro_patterns.get('total_score', 0)
+        for game in games:
+            home_tier = self._get_team_tier(game.get('home_team', ''))
+            away_tier = self._get_team_tier(game.get('away_team', ''))
+            
+            if abs(home_tier - away_tier) >= 2:
+                elite_vs_weak += 1
+            else:
+                close_matches += 1
         
-        # Situational factors
-        base_score += situational_edge.get('total_score', 0)
+        insights.append(f"Tournament has {elite_vs_weak} mismatch games and {close_matches} competitive matches")
+        insights.append("Elite European clubs typically dominate early rounds")
+        insights.append("South American champions often provide strong competition")
+        insights.append("Continental representatives may struggle against top-tier teams")
+        insights.append("Live betting opportunities increase as tournament progresses")
         
-        # Line movement
-        base_score += movement_analysis.get('total_score', 0)
-        
-        return min(base_score, 100)  # Cap at 100
+        return insights
     
-    def _generate_recommendation(self, opportunity_score: int, market_analysis: Dict) -> str:
-        """Generate specific betting recommendation"""
-        if opportunity_score >= 85:
-            return "STRONG BET - Multiple insider indicators align"
-        elif opportunity_score >= 75:
-            return "GOOD BET - Professional patterns detected"
-        elif opportunity_score >= 70:
-            return "MONITOR - Emerging opportunity"
-        else:
-            return "PASS - Insufficient edge"
-    
-    def _determine_confidence(self, opportunity_score: int) -> str:
-        """Determine confidence level"""
-        if opportunity_score >= 90:
-            return "VERY HIGH"
-        elif opportunity_score >= 80:
-            return "HIGH"
-        elif opportunity_score >= 70:
-            return "MEDIUM"
-        else:
-            return "LOW"
-    
-    def _calculate_insider_edge(self, market_analysis: Dict, pro_patterns: Dict) -> float:
-        """Calculate estimated insider edge percentage"""
-        base_edge = 0.0
+    def _create_winning_strategies(self, analysis: Dict) -> List[str]:
+        """Create specific winning strategies for FIFA Club World Cup"""
+        strategies = []
         
-        if market_analysis:
-            inefficiency = market_analysis.get('inefficiency_percentage', 0)
-            base_edge += inefficiency * 0.5  # 50% of market inefficiency
+        if analysis['mismatch_opportunities']:
+            strategies.append("PRIORITY: Bet on elite teams against weaker continental champions")
+            strategies.append("Focus on mismatches with 2+ tier differences for highest win probability")
         
-        if pro_patterns.get('total_score', 0) > 40:
-            base_edge += 3.0  # Strong professional indicators add 3%
-        elif pro_patterns.get('total_score', 0) > 20:
-            base_edge += 1.5  # Moderate indicators add 1.5%
+        if analysis['arbitrage_opportunities']:
+            strategies.append("GUARANTEED PROFITS: Execute arbitrage opportunities immediately")
         
-        return round(base_edge, 2)
+        if analysis['value_bets']:
+            strategies.append("VALUE BETTING: Monitor high variance games for live betting windows")
+        
+        strategies.append("BANKROLL STRATEGY: Use Kelly Criterion with 25% fractional sizing")
+        strategies.append("TIMING: Place bets early as lines may move toward favorites")
+        strategies.append("HEDGE OPPORTUNITIES: Consider hedging large positions in later rounds")
+        
+        return strategies
     
-    def generate_insider_intelligence_report(self, sport_key: str) -> str:
-        """Generate comprehensive insider intelligence report"""
+    def generate_fifa_report(self) -> str:
+        """Generate comprehensive FIFA Club World Cup winning report"""
         try:
-            opportunities = self.analyze_insider_opportunities(sport_key)
+            analysis = self.analyze_fifa_opportunities()
             
-            report = f"🎯 INSIDER BETTING INTELLIGENCE - {sport_key.upper()}\n\n"
+            if 'error' in analysis:
+                return f"Error generating FIFA Club World Cup report: {analysis['error']}"
             
-            if not opportunities:
-                report += "No high-probability insider opportunities detected (70+ score threshold)"
-                return report
+            report = "🏆 FIFA CLUB WORLD CUP - SPECIALIZED WINNING SYSTEM\n\n"
             
-            report += f"🔥 PROFESSIONAL-GRADE OPPORTUNITIES ({len(opportunities)} detected):\n\n"
+            # Tournament overview
+            report += f"📊 TOURNAMENT OVERVIEW:\n"
+            report += f"• Total games available: {analysis['total_games']}\n"
+            report += f"• Team strength mismatches: {len(analysis['mismatch_opportunities'])}\n"
+            report += f"• Arbitrage opportunities: {len(analysis['arbitrage_opportunities'])}\n"
+            report += f"• Value betting opportunities: {len(analysis['value_bets'])}\n\n"
             
-            for i, opp in enumerate(opportunities, 1):
-                report += f"{i}. {opp['game']}\n"
-                report += f"   🎯 Opportunity Score: {opp['opportunity_score']}/100\n"
-                report += f"   📊 Market Efficiency: {opp['market_efficiency']}\n"
-                report += f"   🏛️ Pro Patterns: {opp['professional_indicators']['total_score']} points\n"
-                report += f"   ⚡ Insider Edge: {opp['insider_edge']}%\n"
-                report += f"   💡 Recommendation: {opp['recommended_action']}\n"
-                report += f"   🎲 Confidence: {opp['confidence_level']}\n\n"
+            # Mismatch opportunities (highest priority)
+            if analysis['mismatch_opportunities']:
+                report += "🎯 TEAM STRENGTH MISMATCHES (HIGHEST WIN PROBABILITY):\n"
+                for i, mismatch in enumerate(analysis['mismatch_opportunities'][:3], 1):
+                    report += f"{i}. {mismatch['game']}\n"
+                    report += f"   💪 {mismatch['stronger_team']} @ {mismatch['stronger_team_odds']}\n"
+                    report += f"   📊 Win probability: {mismatch['implied_probability']}%\n"
+                    report += f"   💎 {mismatch['value_assessment']}\n"
+                    report += f"   ⚡ {mismatch['recommendation']}\n\n"
             
-            report += "🧠 INSIDER INTELLIGENCE METHODOLOGY:\n"
-            report += "• Sharp vs Soft bookmaker analysis\n"
-            report += "• Professional betting pattern detection\n"
-            report += "• Steam move and reverse line movement tracking\n"
-            report += "• Situational factor integration\n"
-            report += "• Market efficiency scoring\n\n"
+            # Arbitrage opportunities
+            if analysis['arbitrage_opportunities']:
+                report += "💰 GUARANTEED ARBITRAGE PROFITS:\n"
+                for i, arb in enumerate(analysis['arbitrage_opportunities'], 1):
+                    report += f"{i}. {arb.get('game', 'Unknown')}\n"
+                    report += f"   💵 Guaranteed profit: {arb.get('profit_margin', 0):.2f}%\n\n"
             
-            report += "⚡ EXECUTION STRATEGY:\n"
-            report += "1. STRONG BET opportunities - Act immediately\n"
-            report += "2. Follow sharp money indicators\n"
-            report += "3. Target soft bookmaker inefficiencies\n"
-            report += "4. Use professional sizing (2-5% bankroll)\n\n"
+            # Tournament insights
+            if analysis['tournament_insights']:
+                report += "🧠 TOURNAMENT INSIGHTS:\n"
+                for insight in analysis['tournament_insights']:
+                    report += f"• {insight}\n"
+                report += "\n"
             
-            report += "🎯 INSTITUTIONAL-GRADE MARKET INTELLIGENCE"
+            # Winning strategies
+            if analysis['recommended_strategies']:
+                report += "🚀 WINNING STRATEGIES:\n"
+                for i, strategy in enumerate(analysis['recommended_strategies'], 1):
+                    report += f"{i}. {strategy}\n"
+                report += "\n"
+            
+            report += "⚠️ EXECUTION PRIORITY:\n"
+            report += "1. ARBITRAGE - Execute immediately for guaranteed profits\n"
+            report += "2. ELITE vs WEAK - High probability bets on mismatches\n"
+            report += "3. VALUE BETS - Monitor odds movements for opportunities\n"
+            report += "4. LIVE BETTING - Watch games for in-play advantages\n\n"
+            
+            report += "🏆 FIFA CLUB WORLD CUP OPTIMIZED FOR MAXIMUM WINS"
             
             return report
             
         except Exception as e:
-            logger.error(f"Error generating insider intelligence report: {e}")
-            return f"Error generating insider intelligence report: {e}"
+            logger.error(f"Error generating FIFA report: {e}")
+            return f"Error generating FIFA Club World Cup report: {e}"
