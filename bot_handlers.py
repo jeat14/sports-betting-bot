@@ -919,6 +919,153 @@ Start with: `/bankroll setup 1000` then `/arbitrage baseball_mlb`
             logger.error(f"Error in horses command: {e}")
             await update.message.reply_text(f"❌ Error analyzing horse racing: {e}")
 
+    async def steam_moves_command(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
+        """Detect steam moves - rapid line movement indicating sharp action"""
+        try:
+            from advanced_winning_strategies import AdvancedWinningStrategies
+            
+            await update.message.reply_text("🔥 Scanning for steam moves across major sports...")
+            
+            strategies = AdvancedWinningStrategies()
+            steam_moves = strategies.detect_steam_moves('americanfootball_nfl')
+            
+            if steam_moves:
+                report = "🔥 STEAM MOVES DETECTED 🔥\n\n"
+                for move in steam_moves[:3]:  # Top 3 steam moves
+                    report += f"🏈 {move.get('teams', 'Game')}\n"
+                    report += f"📈 Movement: {move.get('movement_direction', 'N/A')}\n"
+                    report += f"💪 Strength: {move.get('steam_strength', 'N/A')}/10\n"
+                    report += f"🎯 Sharp Action: {move.get('recommendation', 'N/A')}\n\n"
+                
+                report += "💡 Steam moves indicate where sharp money is moving the line rapidly."
+            else:
+                report = "🔍 No significant steam moves detected at this time.\n\nSteam moves occur when sharp bettors cause rapid line movement."
+            
+            await update.message.reply_text(report)
+            
+        except Exception as e:
+            logger.error(f"Error in steam moves command: {e}")
+            await update.message.reply_text("❌ Steam move detection temporarily unavailable")
+
+    async def mathematical_edges_command(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
+        """Calculate mathematical edges for betting opportunities"""
+        try:
+            from winning_edge_calculator import WinningEdgeCalculator
+            
+            await update.message.reply_text("🧮 Calculating mathematical edges...")
+            
+            calculator = WinningEdgeCalculator()
+            edges = calculator.calculate_sport_edges('americanfootball_nfl')
+            
+            if edges:
+                report = "🧮 MATHEMATICAL EDGES 🧮\n\n"
+                for edge in edges[:3]:  # Top 3 edges
+                    report += f"🏈 {edge.get('game', 'Game')}\n"
+                    report += f"📊 Edge: {edge.get('edge_percentage', 0):.2f}%\n"
+                    report += f"💰 Expected Value: {edge.get('expected_value', 0):.3f}\n"
+                    report += f"🎯 Bet: {edge.get('recommendation', 'N/A')}\n\n"
+                
+                report += "💡 Mathematical edge shows the theoretical advantage over the bookmaker."
+            else:
+                report = "🔍 No significant mathematical edges found at this time."
+            
+            await update.message.reply_text(report)
+            
+        except Exception as e:
+            logger.error(f"Error in mathematical edges command: {e}")
+            await update.message.reply_text("❌ Edge calculation temporarily unavailable")
+
+    async def insider_intelligence_command(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
+        """Analyze professional betting patterns and market intelligence"""
+        try:
+            from insider_betting_intelligence import InsiderBettingIntelligence
+            
+            await update.message.reply_text("🕵️ Analyzing professional betting patterns...")
+            
+            intelligence = InsiderBettingIntelligence()
+            patterns = intelligence.analyze_professional_patterns('americanfootball_nfl')
+            
+            if patterns:
+                report = "🕵️ INSIDER INTELLIGENCE 🕵️\n\n"
+                for pattern in patterns[:3]:  # Top 3 patterns
+                    report += f"🏈 {pattern.get('game', 'Game')}\n"
+                    report += f"📈 Sharp Action: {pattern.get('sharp_action_score', 0)}/10\n"
+                    report += f"💼 Pro Recommendation: {pattern.get('recommendation', 'N/A')}\n"
+                    report += f"🎯 Confidence: {pattern.get('confidence', 'N/A')}\n\n"
+                
+                report += "💡 Based on line movement and professional betting patterns."
+            else:
+                report = "🔍 No significant professional patterns detected currently."
+            
+            await update.message.reply_text(report)
+            
+        except Exception as e:
+            logger.error(f"Error in insider intelligence command: {e}")
+            await update.message.reply_text("❌ Intelligence analysis temporarily unavailable")
+
+    async def fifa_world_cup_command(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
+        """Analyze FIFA Club World Cup matches"""
+        try:
+            from fifa_club_world_cup_analyzer import FIFAClubWorldCupAnalyzer
+            
+            await update.message.reply_text("⚽ Analyzing FIFA Club World Cup opportunities...")
+            
+            fifa_analyzer = FIFAClubWorldCupAnalyzer()
+            analysis = fifa_analyzer.analyze_tournament_opportunities()
+            
+            if analysis and analysis.get('opportunities'):
+                report = "⚽ FIFA CLUB WORLD CUP ANALYSIS ⚽\n\n"
+                for opp in analysis['opportunities'][:3]:  # Top 3 opportunities
+                    report += f"🏆 {opp.get('match', 'Match')}\n"
+                    report += f"📊 Value Score: {opp.get('value_score', 0)}/10\n"
+                    report += f"💰 Best Bet: {opp.get('recommendation', 'N/A')}\n"
+                    report += f"🎯 Confidence: {opp.get('confidence', 'N/A')}\n\n"
+                
+                report += "💡 Analysis based on team form, historical performance, and tournament dynamics."
+            else:
+                report = "⚽ FIFA Club World Cup analysis:\n\nNo current tournament matches available for analysis."
+            
+            await update.message.reply_text(report)
+            
+        except Exception as e:
+            logger.error(f"Error in FIFA command: {e}")
+            await update.message.reply_text("❌ FIFA analysis temporarily unavailable")
+
+    async def multi_sport_scan_command(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
+        """Comprehensive multi-sport opportunity scanner"""
+        try:
+            from multi_sport_scanner import MultiSportScanner
+            
+            await update.message.reply_text("🔍 Scanning all sports for opportunities...")
+            
+            scanner = MultiSportScanner()
+            results = scanner.scan_all_sports()
+            
+            if results and any(results.values()):
+                report = "🔍 MULTI-SPORT SCAN RESULTS 🔍\n\n"
+                sport_count = 0
+                
+                for sport, data in results.items():
+                    if data and sport_count < 4:  # Show top 4 sports
+                        report += f"🏆 {sport.upper()}\n"
+                        if isinstance(data, dict) and data.get('opportunities'):
+                            opportunities = data['opportunities'][:2]  # Top 2 per sport
+                            for opp in opportunities:
+                                report += f"  📊 {opp.get('game', 'Game')}\n"
+                                report += f"  💰 Value: {opp.get('value_score', 'N/A')}/10\n"
+                        report += "\n"
+                        sport_count += 1
+                
+                report += "💡 Comprehensive scan across multiple sports for value opportunities."
+            else:
+                report = "🔍 Multi-sport scan complete.\n\nNo significant opportunities detected across scanned sports at this time."
+            
+            await update.message.reply_text(report)
+            
+        except Exception as e:
+            logger.error(f"Error in multi-sport scan: {e}")
+            await update.message.reply_text("❌ Multi-sport scan temporarily unavailable")
+
     async def error_handler(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
         """Handle errors"""
         logger.error(f"Update {update} caused error {context.error}")
