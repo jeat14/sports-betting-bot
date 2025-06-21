@@ -580,6 +580,333 @@ Use /games basketball_nba for NBA
             logger.error(f"Error in odds command: {e}")
             await update.message.reply_text("❌ Odds temporarily unavailable")
 
+    async def predictions_command(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
+        """Handle /predictions command"""
+        try:
+            if not context.args:
+                await update.message.reply_text("Please specify a sport. Example: /predictions soccer_epl")
+                return
+                
+            sport_key = context.args[0]
+            await update.message.reply_text(f"🔮 Generating predictions for {sport_key}...")
+            
+            predictions = self.prediction_engine.generate_predictions(sport_key)
+            
+            if not predictions:
+                await update.message.reply_text(f"No predictions available for {sport_key}")
+                return
+            
+            response = f"🔮 **PREDICTIONS FOR {sport_key.upper()}** 🔮\n\n"
+            
+            for prediction in predictions[:5]:  # Show first 5 predictions
+                response += format_prediction_message(prediction)
+                response += "\n➖➖➖➖➖\n\n"
+            
+            await update.message.reply_text(response, parse_mode=ParseMode.MARKDOWN)
+            
+        except Exception as e:
+            logger.error(f"Error in predictions command: {e}")
+            await update.message.reply_text("❌ Predictions temporarily unavailable")
+
+    async def games_command(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
+        """Handle /games command"""
+        try:
+            if not context.args:
+                await update.message.reply_text("Please specify a sport. Example: /games soccer_epl")
+                return
+                
+            sport_key = context.args[0]
+            await update.message.reply_text(f"🏆 Getting today's games for {sport_key}...")
+            
+            games = self.odds_service.get_odds(sport_key)
+            
+            if not games:
+                await update.message.reply_text(f"No games available for {sport_key}")
+                return
+            
+            response = f"🏆 **TODAY'S GAMES - {sport_key.upper()}** 🏆\n\n"
+            
+            for game in games[:5]:  # Show first 5 games
+                response += format_game_summary(game)
+                response += "\n➖➖➖➖➖\n\n"
+            
+            await update.message.reply_text(response, parse_mode=ParseMode.MARKDOWN)
+            
+        except Exception as e:
+            logger.error(f"Error in games command: {e}")
+            await update.message.reply_text("❌ Games temporarily unavailable")
+
+    async def today_command(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
+        """Handle /today command"""
+        try:
+            await update.message.reply_text("🌟 Getting today's top picks...")
+            
+            # Get top picks across multiple sports
+            sports_to_check = ['soccer_epl', 'americanfootball_nfl', 'basketball_nba']
+            all_picks = []
+            
+            for sport in sports_to_check:
+                try:
+                    predictions = self.prediction_engine.generate_predictions(sport)
+                    if predictions:
+                        all_picks.extend(predictions[:2])  # Top 2 from each sport
+                except:
+                    continue
+            
+            if not all_picks:
+                await update.message.reply_text("No top picks available today")
+                return
+            
+            response = "🌟 **TODAY'S TOP PICKS** 🌟\n\n"
+            
+            for pick in all_picks[:5]:  # Show top 5 overall
+                response += format_prediction_message(pick)
+                response += "\n➖➖➖➖➖\n\n"
+            
+            await update.message.reply_text(response, parse_mode=ParseMode.MARKDOWN)
+            
+        except Exception as e:
+            logger.error(f"Error in today command: {e}")
+            await update.message.reply_text("❌ Today's picks temporarily unavailable")
+
+    async def scores_command(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
+        """Handle /scores command"""
+        try:
+            if not context.args:
+                await update.message.reply_text("Please specify a sport. Example: /scores soccer_epl")
+                return
+                
+            sport_key = context.args[0]
+            await update.message.reply_text(f"📊 Getting live scores for {sport_key}...")
+            
+            # Get score predictions instead of live scores
+            scores = self.score_predictor.predict_scores(sport_key)
+            
+            if not scores:
+                await update.message.reply_text(f"No score predictions available for {sport_key}")
+                return
+            
+            response = f"📊 **SCORE PREDICTIONS - {sport_key.upper()}** 📊\n\n"
+            
+            for score in scores[:5]:  # Show first 5 predictions
+                home_team = score.get('home_team', 'Team A')
+                away_team = score.get('away_team', 'Team B')
+                predicted_score = score.get('predicted_score', '0-0')
+                confidence = score.get('confidence', 0)
+                
+                response += f"⚽ **{home_team} vs {away_team}**\n"
+                response += f"Predicted Score: {predicted_score}\n"
+                response += f"Confidence: {confidence}%\n\n"
+            
+            await update.message.reply_text(response, parse_mode=ParseMode.MARKDOWN)
+            
+        except Exception as e:
+            logger.error(f"Error in scores command: {e}")
+            await update.message.reply_text("❌ Score predictions temporarily unavailable")
+
+    async def advanced_predictions_command(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
+        """Handle /advanced command"""
+        try:
+            if not context.args:
+                await update.message.reply_text("Please specify a sport. Example: /advanced soccer_epl")
+                return
+                
+            sport_key = context.args[0]
+            await update.message.reply_text(f"🧠 Generating advanced predictions for {sport_key}...")
+            
+            advanced_predictions = self.advanced_engine.generate_advanced_predictions(sport_key)
+            
+            if not advanced_predictions:
+                await update.message.reply_text(f"No advanced predictions available for {sport_key}")
+                return
+            
+            response = f"🧠 **ADVANCED PREDICTIONS - {sport_key.upper()}** 🧠\n\n"
+            response += advanced_predictions
+            
+            await update.message.reply_text(response, parse_mode=ParseMode.MARKDOWN)
+            
+        except Exception as e:
+            logger.error(f"Error in advanced predictions command: {e}")
+            await update.message.reply_text("❌ Advanced predictions temporarily unavailable")
+
+    async def track_bet_command(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
+        """Handle /trackbet command"""
+        try:
+            await update.message.reply_text("📊 Tracking your bet...")
+            
+            # Implementation for bet tracking
+            report = self.betting_tracker.generate_tracking_report()
+            await update.message.reply_text(report)
+            
+        except Exception as e:
+            logger.error(f"Error in track bet command: {e}")
+            await update.message.reply_text("❌ Bet tracking temporarily unavailable")
+
+    async def my_stats_command(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
+        """Handle /mystats command"""
+        try:
+            await update.message.reply_text("📈 Getting your betting statistics...")
+            
+            # Implementation for user statistics
+            stats = self.betting_tracker.get_user_stats()
+            await update.message.reply_text(stats)
+            
+        except Exception as e:
+            logger.error(f"Error in my stats command: {e}")
+            await update.message.reply_text("❌ Statistics temporarily unavailable")
+
+    async def pending_bets_command(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
+        """Handle /pending command"""
+        try:
+            await update.message.reply_text("⏳ Getting your pending bets...")
+            
+            # Implementation for pending bets
+            pending = self.betting_tracker.get_pending_bets()
+            await update.message.reply_text(pending)
+            
+        except Exception as e:
+            logger.error(f"Error in pending bets command: {e}")
+            await update.message.reply_text("❌ Pending bets temporarily unavailable")
+
+    async def horse_racing_command(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
+        """Handle /horses command - Current horse racing analysis"""
+        try:
+            await update.message.reply_text("🐎 Analyzing horse racing opportunities...")
+            
+            analysis = self.horse_racing_system.analyze_market_rasen_race()
+            report = self.horse_racing_system.generate_comprehensive_report()
+            
+            await update.message.reply_text(report)
+            
+        except Exception as e:
+            logger.error(f"Error in horse racing command: {e}")
+            await update.message.reply_text("❌ Horse racing analysis temporarily unavailable")
+
+    async def all_sports_command(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
+        """Handle /allsports command"""
+        try:
+            await update.message.reply_text("🌍 Scanning all sports for opportunities...")
+            
+            scan_results = self.multi_scanner.scan_all_sports()
+            report = self.multi_scanner.format_scan_results(scan_results)
+            
+            await update.message.reply_text(report)
+            
+        except Exception as e:
+            logger.error(f"Error in all sports command: {e}")
+            await update.message.reply_text("❌ All sports scan temporarily unavailable")
+
+    async def arbitrage_command(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
+        """Handle /arbitrage command"""
+        try:
+            await update.message.reply_text("💰 Detecting arbitrage opportunities...")
+            
+            opportunities = self.arbitrage_detector.find_arbitrage_opportunities(['soccer_epl', 'americanfootball_nfl'])
+            
+            if not opportunities:
+                await update.message.reply_text("No arbitrage opportunities found at the moment")
+                return
+            
+            response = "💰 **ARBITRAGE OPPORTUNITIES** 💰\n\n"
+            for opp in opportunities[:3]:  # Show top 3 opportunities
+                response += f"⚡ **{opp.get('game', 'Match')}**\n"
+                response += f"Profit: {opp.get('profit_percentage', 0):.2f}%\n"
+                response += f"Stakes: {opp.get('stakes', 'N/A')}\n\n"
+            
+            await update.message.reply_text(response, parse_mode=ParseMode.MARKDOWN)
+            
+        except Exception as e:
+            logger.error(f"Error in arbitrage command: {e}")
+            await update.message.reply_text("❌ Arbitrage detection temporarily unavailable")
+
+    async def bankroll_command(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
+        """Handle /bankroll command"""
+        try:
+            await update.message.reply_text("💼 Analyzing bankroll management...")
+            
+            report = self.bankroll_manager.generate_bankroll_report()
+            await update.message.reply_text(report)
+            
+        except Exception as e:
+            logger.error(f"Error in bankroll command: {e}")
+            await update.message.reply_text("❌ Bankroll analysis temporarily unavailable")
+
+    async def strategies_command(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
+        """Handle /strategies command"""
+        try:
+            await update.message.reply_text("🎯 Generating winning strategies...")
+            
+            strategies = self.advanced_strategies.generate_winning_strategies()
+            await update.message.reply_text(strategies)
+            
+        except Exception as e:
+            logger.error(f"Error in strategies command: {e}")
+            await update.message.reply_text("❌ Strategies temporarily unavailable")
+
+    async def horses_command(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
+        """Handle /horses command - Current horse racing analysis"""
+        try:
+            await update.message.reply_text("🐎 Analyzing horse racing opportunities...")
+            
+            analysis = self.pure_racing_system.analyze_current_races()
+            await update.message.reply_text(analysis)
+            
+        except Exception as e:
+            logger.error(f"Error in horses command: {e}")
+            await update.message.reply_text("❌ Horse racing analysis temporarily unavailable")
+
+    async def steam_moves_command(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
+        """Detect steam moves - rapid line movement indicating sharp action"""
+        try:
+            await update.message.reply_text("💨 Detecting steam moves...")
+            
+            steam_analysis = self.edge_calculator.detect_steam_moves()
+            await update.message.reply_text(steam_analysis)
+            
+        except Exception as e:
+            logger.error(f"Error in steam moves command: {e}")
+            await update.message.reply_text("❌ Steam move detection temporarily unavailable")
+
+    async def mathematical_edges_command(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
+        """Calculate mathematical edges for betting opportunities"""
+        try:
+            await update.message.reply_text("🧮 Calculating mathematical edges...")
+            
+            edges_analysis = self.edge_calculator.calculate_mathematical_edges()
+            await update.message.reply_text(edges_analysis)
+            
+        except Exception as e:
+            logger.error(f"Error in mathematical edges command: {e}")
+            await update.message.reply_text("❌ Mathematical edge calculation temporarily unavailable")
+
+    async def insider_intelligence_command(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
+        """Analyze professional betting patterns and market intelligence"""
+        try:
+            await update.message.reply_text("🕵️ Analyzing professional betting patterns...")
+            
+            intelligence_data = self.insider_intelligence.analyze_professional_patterns('soccer_epl')
+            report = self.insider_intelligence.generate_intelligence_report(intelligence_data)
+            
+            await update.message.reply_text(report)
+            
+        except Exception as e:
+            logger.error(f"Error in insider intelligence command: {e}")
+            await update.message.reply_text("❌ Insider intelligence temporarily unavailable")
+
+    async def multi_sport_scan_command(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
+        """Comprehensive multi-sport opportunity scanner"""
+        try:
+            await update.message.reply_text("🔍 Scanning multiple sports for opportunities...")
+            
+            scan_results = self.multi_scanner.comprehensive_scan()
+            report = self.multi_scanner.format_comprehensive_results(scan_results)
+            
+            await update.message.reply_text(report)
+            
+        except Exception as e:
+            logger.error(f"Error in multi-sport scan command: {e}")
+            await update.message.reply_text("❌ Multi-sport scan temporarily unavailable")
+
     async def button_callback(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
         """Handle inline button callbacks"""
         query = update.callback_query
