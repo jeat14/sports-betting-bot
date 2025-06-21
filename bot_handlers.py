@@ -235,6 +235,7 @@ Use /help to see all available commands.
 🛡️ RISK MANAGEMENT:
 /risk - Comprehensive risk assessment
 /patterns - Personal betting pattern analysis
+/picks - Today's specific team recommendations
 
 Use /odds soccer_epl for Premier League
 Use /predictions americanfootball_nfl for NFL
@@ -301,7 +302,72 @@ Use /games basketball_nba for NBA
             report += "• Diversify across multiple sports/markets\n"
             report += "• Set daily/weekly loss limits\n"
             report += "• Track ROI and adjust strategy accordingly\n"
-            report += "• Consider arbitrage opportunities for guaranteed profit"
+            report += "• Consider arbitrage opportunities for guaranteed profit\n\n"
+            
+            # Add specific betting opportunities
+            report += "🎯 TODAY'S RECOMMENDED BETS:\n"
+            try:
+                # Get actual games and provide specific recommendations
+                sports_to_analyze = ['soccer_epl', 'americanfootball_nfl', 'basketball_nba']
+                betting_opportunities = []
+                
+                for sport in sports_to_analyze:
+                    try:
+                        games = self.odds_service.get_odds(sport)
+                        if games:
+                            for game in games[:2]:  # Top 2 games per sport
+                                home_team = game.get('home_team', 'Team A')
+                                away_team = game.get('away_team', 'Team B')
+                                
+                                # Get best odds
+                                best_odds = None
+                                recommended_outcome = None
+                                
+                                bookmakers = game.get('bookmakers', [])
+                                for bm in bookmakers[:1]:
+                                    for market in bm.get('markets', []):
+                                        if market['key'] == 'h2h':
+                                            outcomes = market['outcomes']
+                                            for outcome in outcomes:
+                                                odds = outcome.get('price', 0)
+                                                if 1.50 <= odds <= 3.00:  # Value bet range
+                                                    if not best_odds or odds > best_odds:
+                                                        best_odds = odds
+                                                        recommended_outcome = outcome.get('name', 'Draw')
+                                            break
+                                    break
+                                
+                                if best_odds and recommended_outcome:
+                                    confidence = min(85, int((3.5 - best_odds) * 30) + 60)
+                                    stake_percentage = 1.0 if best_odds <= 2.5 else 0.5
+                                    
+                                    betting_opportunities.append({
+                                        'match': f"{home_team} vs {away_team}",
+                                        'recommendation': recommended_outcome,
+                                        'odds': best_odds,
+                                        'confidence': confidence,
+                                        'stake': f"{stake_percentage}% of bankroll",
+                                        'sport': sport.replace('_', ' ').title()
+                                    })
+                    except:
+                        continue
+                
+                if betting_opportunities:
+                    for i, bet in enumerate(betting_opportunities[:3], 1):
+                        report += f"\n{i}. {bet['match']} ({bet['sport']})\n"
+                        report += f"   Bet: {bet['recommendation']} @ {bet['odds']}\n"
+                        report += f"   Confidence: {bet['confidence']}%\n"
+                        report += f"   Stake: {bet['stake']}\n"
+                else:
+                    report += "\n• No qualifying opportunities in current risk environment\n"
+                    report += "• Wait for better value bets (odds 1.50-3.00)\n"
+                    report += "• Avoid heavy favorites and high-risk tournaments\n"
+                    
+            except Exception as e:
+                logger.error(f"Error getting betting opportunities: {e}")
+                report += "\n• Use /odds [sport] to find current opportunities\n"
+                report += "• Focus on Premier League, NFL, and NBA games\n"
+                report += "• Look for odds between 1.50-3.00 for best value\n"
             
             await update.message.reply_text(report)
             
@@ -906,6 +972,110 @@ Use /games basketball_nba for NBA
         except Exception as e:
             logger.error(f"Error in multi-sport scan command: {e}")
             await update.message.reply_text("❌ Multi-sport scan temporarily unavailable")
+
+    async def picks_command(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
+        """Get specific team betting recommendations with live odds"""
+        try:
+            await update.message.reply_text("🎯 Finding today's best betting opportunities...")
+            
+            recommendations = []
+            sports_to_analyze = ['soccer_epl', 'americanfootball_nfl', 'basketball_nba', 'icehockey_nhl']
+            
+            for sport in sports_to_analyze:
+                try:
+                    games = self.odds_service.get_odds(sport)
+                    if not games:
+                        continue
+                        
+                    for game in games[:3]:  # Top 3 games per sport
+                        home_team = game.get('home_team', 'Team A')
+                        away_team = game.get('away_team', 'Team B')
+                        
+                        bookmakers = game.get('bookmakers', [])
+                        if not bookmakers:
+                            continue
+                            
+                        # Find best value bet
+                        best_bet = None
+                        for bm in bookmakers[:1]:
+                            for market in bm.get('markets', []):
+                                if market['key'] == 'h2h':
+                                    outcomes = market['outcomes']
+                                    
+                                    for outcome in outcomes:
+                                        odds = outcome.get('price', 0)
+                                        team_name = outcome.get('name', '')
+                                        
+                                        # Look for value bets (odds 1.50-3.50)
+                                        if 1.50 <= odds <= 3.50:
+                                            # Calculate implied probability and confidence
+                                            implied_prob = 1 / odds
+                                            
+                                            # Simple value assessment
+                                            if 0.28 <= implied_prob <= 0.66:  # Sweet spot
+                                                confidence = min(90, int((1 - abs(implied_prob - 0.45)) * 200))
+                                                
+                                                if not best_bet or confidence > best_bet['confidence']:
+                                                    best_bet = {
+                                                        'match': f"{home_team} vs {away_team}",
+                                                        'pick': team_name,
+                                                        'odds': odds,
+                                                        'confidence': confidence,
+                                                        'sport': sport.replace('_', ' ').title(),
+                                                        'stake': '1-2% bankroll' if odds <= 2.5 else '0.5-1% bankroll'
+                                                    }
+                                    break
+                            break
+                        
+                        if best_bet and best_bet['confidence'] >= 65:
+                            recommendations.append(best_bet)
+                            
+                except Exception as e:
+                    logger.error(f"Error analyzing {sport}: {e}")
+                    continue
+            
+            if recommendations:
+                # Sort by confidence
+                recommendations.sort(key=lambda x: x['confidence'], reverse=True)
+                
+                response = "🎯 **TODAY'S TOP BETTING PICKS** 🎯\n\n"
+                
+                for i, pick in enumerate(recommendations[:5], 1):
+                    response += f"**{i}. {pick['match']}** ({pick['sport']})\n"
+                    response += f"💰 **Pick: {pick['pick']}** @ {pick['odds']}\n"
+                    response += f"📊 Confidence: {pick['confidence']}%\n"
+                    response += f"💵 Stake: {pick['stake']}\n"
+                    
+                    # Add reasoning
+                    if pick['odds'] <= 2.0:
+                        response += f"✅ Reason: Strong favorite with good value\n"
+                    elif pick['odds'] <= 2.8:
+                        response += f"✅ Reason: Balanced risk-reward opportunity\n"
+                    else:
+                        response += f"✅ Reason: High-value underdog with potential\n"
+                    
+                    response += "\n"
+                
+                response += "⚠️ **IMPORTANT REMINDERS:**\n"
+                response += "• Never bet more than 2% of your bankroll per bet\n"
+                response += "• Avoid heavy favorites with odds below 1.30\n"
+                response += "• Set stop-loss limits before placing bets\n"
+                response += "• Always verify odds with your bookmaker\n"
+                
+            else:
+                response = "⏳ **NO QUALIFYING PICKS TODAY**\n\n"
+                response += "Current market conditions don't show strong value opportunities.\n\n"
+                response += "**What to do:**\n"
+                response += "• Wait for better odds (1.50-3.50 range)\n"
+                response += "• Avoid heavy favorites and extreme underdogs\n"
+                response += "• Check back later for new opportunities\n"
+                response += "• Use /odds [sport] to monitor specific markets\n"
+            
+            await update.message.reply_text(response, parse_mode=ParseMode.MARKDOWN)
+            
+        except Exception as e:
+            logger.error(f"Error in picks command: {e}")
+            await update.message.reply_text("❌ Unable to get picks at the moment. Try /odds [sport] for live markets.")
 
     async def button_callback(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
         """Handle inline button callbacks"""
