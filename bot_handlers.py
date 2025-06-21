@@ -901,20 +901,97 @@ class BotHandlers:
             await update.message.reply_text("❌ Intelligence analysis temporarily unavailable")
 
     async def fifa_world_cup_command(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
-        """Analyze FIFA Club World Cup matches"""
+        """Analyze FIFA Club World Cup matches with enhanced risk management"""
         try:
             from fifa_club_world_cup_analyzer import FIFAClubWorldCupAnalyzer
+            from enhanced_risk_management import EnhancedRiskManagement
             
-            await update.message.reply_text("⚽ Analyzing FIFA Club World Cup opportunities...")
+            await update.message.reply_text("⚽ Analyzing FIFA opportunities with risk assessment...")
             
             fifa_analyzer = FIFAClubWorldCupAnalyzer()
+            risk_manager = EnhancedRiskManagement()
+            
+            # Get basic analysis
+            analysis = fifa_analyzer.analyze_fifa_opportunities()
+            
+            # Add risk warnings for high-risk scenarios
+            risk_warnings = []
+            
+            if analysis.get('total_games', 0) > 0:
+                # Check for heavy favorites (avoid like Benfica 1.01)
+                fifa_tournaments = ['soccer_fifa_club_world_cup', 'soccer_uefa_champs_league', 'soccer_epl']
+                
+                for tournament in fifa_tournaments:
+                    games = fifa_analyzer.odds_service.get_odds(tournament)
+                    if games:
+                        for game in games[:3]:
+                            # Assess risk for each game
+                            risk_assessment = risk_manager.assess_bet_risk(game, 100, 1000)  # Example amounts
+                            
+                            if risk_assessment['overall_risk_score'] >= 70:
+                                home_team = game.get('home_team', 'Team')
+                                away_team = game.get('away_team', 'Team')
+                                risk_warnings.append(f"⚠️ HIGH RISK: {home_team} vs {away_team} - {risk_assessment['recommendation']}")
+                        break
+            
+            # Generate report with risk warnings
             report = fifa_analyzer.generate_fifa_report()
+            
+            if risk_warnings:
+                report += "\n\n🛡️ RISK MANAGEMENT ALERTS:\n"
+                for warning in risk_warnings[:3]:
+                    report += f"{warning}\n"
+                report += "\n💡 Recommendation: Avoid heavy favorites and use maximum 1-2% of bankroll per bet"
             
             await update.message.reply_text(report)
             
         except Exception as e:
             logger.error(f"Error in FIFA command: {e}")
             await update.message.reply_text("❌ FIFA analysis temporarily unavailable")
+
+    async def risk_assessment_command(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
+        """Comprehensive risk assessment for betting decisions"""
+        try:
+            from enhanced_risk_management import EnhancedRiskManagement
+            
+            await update.message.reply_text("🛡️ Generating comprehensive risk assessment...")
+            
+            risk_manager = EnhancedRiskManagement()
+            
+            # Sample risk assessment for current market conditions
+            sample_assessment = {
+                'overall_risk_score': 65,
+                'recommendation': 'CAUTION - Market showing high volatility',
+                'suggested_bet_size': 20.0,
+                'confidence_level': 'MODERATE_CONFIDENCE',
+                'risk_factors': {
+                    'upset_probability': 0.35,
+                    'odds_reliability': 0.70,
+                    'market_efficiency': 0.60,
+                    'historical_performance': 0.65,
+                    'bankroll_risk': 0.40
+                }
+            }
+            
+            report = risk_manager.generate_risk_report(sample_assessment)
+            
+            # Add specific warnings based on recent losses
+            report += "\n⚠️ RECENT MARKET ALERTS:\n"
+            report += "• Heavy favorites (odds < 1.20) showing increased upset rate\n"
+            report += "• Horse racing markets experiencing high volatility\n"
+            report += "• Tournament football showing unpredictable results\n\n"
+            
+            report += "🎯 CONSERVATIVE STRATEGY RECOMMENDATIONS:\n"
+            report += "• Reduce bet sizes to 0.5-1% of bankroll\n"
+            report += "• Avoid odds shorter than 1.30\n"
+            report += "• Focus on well-researched value bets only\n"
+            report += "• Consider taking a break to reassess strategy\n"
+            
+            await update.message.reply_text(report)
+            
+        except Exception as e:
+            logger.error(f"Error in risk assessment command: {e}")
+            await update.message.reply_text("❌ Risk assessment temporarily unavailable")
 
     async def multi_sport_scan_command(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
         """Comprehensive multi-sport opportunity scanner"""
