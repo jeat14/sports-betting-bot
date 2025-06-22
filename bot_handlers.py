@@ -519,53 +519,141 @@ Edge% = (Win Probability × Decimal Odds) - 1
 
     async def fifa_command(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
         """Handle /fifa command"""
-        fifa_text = """
-🏆 **FIFA World Cup Analysis**
-
-**Tournament Structure Analysis:**
-• Group stage dynamics and advancement scenarios
-• Knockout round single-elimination pressure
-• Historical performance patterns in World Cup format
-
-**Key Betting Factors:**
-**Squad Depth:** Tournament requires rotation over 7 potential games
-**Climate Adaptation:** Host country conditions affect performance
-**Tactical Flexibility:** Coaches' ability to adapt between games
-**Experience Factor:** Players' previous World Cup performance
-
-**Value Opportunities:**
-• **Group Stage:** Motivated underdogs in final group games
-• **Round of 16:** Experience vs. momentum matchups
-• **Quarter-Finals:** Peak tactical adjustments phase
-• **Semi-Finals:** Mental pressure creates upsets
-
-**Historical Trends:**
-• Home advantage amplified in World Cup setting
-• Penalty shootout specialists gain extra value
-• Young breakthrough players often emerge
-• Traditional powers face increased pressure
-
-**Betting Strategy:**
-• **Pre-Tournament:** Back proven international performers
+        try:
+            fifa_text = "🏆 **FIFA World Cup & International Soccer**\n\n"
+            
+            # Try to get FIFA World Cup or international soccer matches
+            fifa_sports = ['soccer_fifa_world_cup', 'soccer_conmebol_copa_america', 'soccer_uefa_european_championship']
+            
+            games_found = False
+            
+            for sport in fifa_sports:
+                try:
+                    url = f"{self.api_base_url}/sports/{sport}/odds"
+                    params = {
+                        'apiKey': self.odds_api_key,
+                        'regions': 'us,uk',
+                        'markets': 'h2h',
+                        'dateFormat': 'iso'
+                    }
+                    
+                    response = requests.get(url, params=params, timeout=10)
+                    
+                    if response.status_code == 200:
+                        games = response.json()
+                        
+                        if games:
+                            sport_name = sport.replace('_', ' ').title().replace('Soccer ', '')
+                            fifa_text += f"⚽ **{sport_name} Matches:**\n"
+                            
+                            for game in games[:4]:  # Show top 4 games
+                                home_team = game['home_team']
+                                away_team = game['away_team']
+                                commence_time = game.get('commence_time', '')
+                                
+                                # Get best odds
+                                best_home_odds = 0
+                                best_away_odds = 0
+                                best_draw_odds = 0
+                                
+                                for bookmaker in game.get('bookmakers', []):
+                                    for market in bookmaker.get('markets', []):
+                                        if market['key'] == 'h2h':
+                                            for outcome in market['outcomes']:
+                                                if outcome['name'] == home_team:
+                                                    best_home_odds = max(best_home_odds, outcome['price'])
+                                                elif outcome['name'] == away_team:
+                                                    best_away_odds = max(best_away_odds, outcome['price'])
+                                                elif outcome['name'] == 'Draw':
+                                                    best_draw_odds = max(best_draw_odds, outcome['price'])
+                                
+                                fifa_text += f"🥅 **{away_team} vs {home_team}**\n"
+                                if commence_time:
+                                    fifa_text += f"📅 {commence_time[:10]} {commence_time[11:16]} UTC\n"
+                                
+                                if best_home_odds and best_away_odds:
+                                    fifa_text += f"💰 {away_team}: {best_away_odds}\n"
+                                    fifa_text += f"💰 Draw: {best_draw_odds if best_draw_odds else 'N/A'}\n"
+                                    fifa_text += f"💰 {home_team}: {best_home_odds}\n"
+                                    
+                                    # Simple prediction based on odds
+                                    if best_home_odds < best_away_odds:
+                                        fifa_text += f"🎯 **Prediction:** {home_team} (Favorite)\n"
+                                    else:
+                                        fifa_text += f"🎯 **Prediction:** {away_team} (Favorite)\n"
+                                
+                                fifa_text += "\n"
+                            
+                            games_found = True
+                            break
+                            
+                except Exception as e:
+                    logger.error(f"Error fetching {sport}: {e}")
+                    continue
+            
+            if not games_found:
+                # If no FIFA games, show major international soccer leagues
+                try:
+                    url = f"{self.api_base_url}/sports/soccer_epl/odds"
+                    params = {
+                        'apiKey': self.odds_api_key,
+                        'regions': 'uk',
+                        'markets': 'h2h',
+                        'dateFormat': 'iso'
+                    }
+                    
+                    response = requests.get(url, params=params, timeout=10)
+                    
+                    if response.status_code == 200:
+                        games = response.json()
+                        
+                        if games:
+                            fifa_text += "⚽ **Premier League (No FIFA matches currently)**\n\n"
+                            
+                            for game in games[:3]:
+                                home_team = game['home_team']
+                                away_team = game['away_team']
+                                
+                                fifa_text += f"🥅 **{away_team} vs {home_team}**\n"
+                                
+                                # Get odds
+                                for bookmaker in game.get('bookmakers', []):
+                                    if bookmaker['title'] == 'Bet365':
+                                        for market in bookmaker.get('markets', []):
+                                            if market['key'] == 'h2h':
+                                                for outcome in market['outcomes']:
+                                                    fifa_text += f"💰 {outcome['name']}: {outcome['price']}\n"
+                                        break
+                                fifa_text += "\n"
+                except Exception:
+                    fifa_text += "⚽ **No FIFA or international matches currently available**\n\n"
+            
+            fifa_text += """
+**FIFA Betting Strategy:**
 • **Group Stage:** Target motivated teams in final fixtures
 • **Knockout Rounds:** Experience and penalty records crucial
-• **Finals:** Mental strength and squad depth decisive
+• **Tournament Pressure:** Mental strength decisive factor
+• **Squad Depth:** Rotation capabilities over 7 games
 
-**Current Analysis:**
-• Monitor team news and training camp reports
-• Track betting market movements for insider information
-• Consider weather and altitude factors for host venues
-• Analyze head-to-head international records
+**Key Factors:**
+• Head-to-head international records
+• Recent form in qualifiers
+• Squad experience in major tournaments
+• Climate and altitude adaptation
 
-**Risk Management:**
-• Hedge positions as tournament progresses
-• Consider in-play opportunities during matches
-• Manage bankroll across multiple rounds
-• Factor in potential bracket advantages
+**Value Opportunities:**
+• Underdog nations with strong defensive records
+• Experienced teams in penalty shootouts
+• Early tournament overreactions to group results
 
-🎯 **World Cup Edge:** International tournaments create unique betting dynamics not found in domestic leagues.
-        """
-        await update.message.reply_text(fifa_text, parse_mode=ParseMode.MARKDOWN)
+💡 **FIFA Edge:** International tournaments create unique dynamics not found in domestic leagues.
+            """
+            
+            await update.message.reply_text(fifa_text, parse_mode=ParseMode.MARKDOWN)
+            
+        except Exception as e:
+            logger.error(f"Error in fifa command: {e}")
+            await update.message.reply_text("Error fetching FIFA data. Please try again.")
 
     async def risk_command(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
         """Handle /risk command"""
