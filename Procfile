@@ -1,1 +1,1 @@
-worker: python heroku_stable_main.py
+heroku ps:scale worker=1
