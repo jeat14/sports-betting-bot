@@ -8,7 +8,7 @@ import os
 import logging
 from telegram import Update
 from telegram.ext import Application, CommandHandler, CallbackQueryHandler, MessageHandler, filters
-from bot_handlers_clean import BotHandlers
+from bot_handlers import BotHandlers
 
 # Configure logging
 logging.basicConfig(
