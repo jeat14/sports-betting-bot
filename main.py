@@ -46,6 +46,13 @@ def main():
         application.add_handler(CommandHandler("steam", handlers.steam_command))
         application.add_handler(CommandHandler("picks", handlers.picks_command))
         application.add_handler(CommandHandler("odds", handlers.odds_command))
+        application.add_handler(CommandHandler("insider", handlers.insider_command))
+        application.add_handler(CommandHandler("edges", handlers.edges_command))
+        application.add_handler(CommandHandler("fifa", handlers.fifa_command))
+        application.add_handler(CommandHandler("risk", handlers.risk_command))
+        application.add_handler(CommandHandler("patterns", handlers.patterns_command))
+        application.add_handler(CommandHandler("scan", handlers.scan_command))
+        application.add_handler(CommandHandler("scores", handlers.scores_command))
         
         # Add error handler
         application.add_error_handler(handlers.error_handler)
