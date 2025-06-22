@@ -1,1 +1,1 @@
-web: python heroku_main_final.py
+worker: python heroku_stable_main.py
