@@ -568,19 +568,24 @@ Edge% = (Win Probability × Decimal Odds) - 1
                                                     best_draw_odds = max(best_draw_odds, outcome['price'])
                                 
                                 fifa_text += f"🥅 **{away_team} vs {home_team}**\n"
-                                if commence_time:
-                                    fifa_text += f"📅 {commence_time[:10]} {commence_time[11:16]} UTC\n"
                                 
                                 if best_home_odds and best_away_odds:
-                                    fifa_text += f"💰 {away_team}: {best_away_odds}\n"
-                                    fifa_text += f"💰 Draw: {best_draw_odds if best_draw_odds else 'N/A'}\n"
-                                    fifa_text += f"💰 {home_team}: {best_home_odds}\n"
+                                    fifa_text += f"🏠 {home_team}: {best_home_odds}\n"
+                                    fifa_text += f"✈️ {away_team}: {best_away_odds}\n"
+                                    if best_draw_odds:
+                                        fifa_text += f"🤝 Draw: {best_draw_odds}\n"
                                     
-                                    # Simple prediction based on odds
-                                    if best_home_odds < best_away_odds:
-                                        fifa_text += f"🎯 **Prediction:** {home_team} (Favorite)\n"
+                                    if commence_time:
+                                        fifa_text += f"⏰ {commence_time[:10]}T{commence_time[11:16]}\n"
+                                    
+                                    # Calculate win probability and edge
+                                    home_prob = (1/best_home_odds) * 100 if best_home_odds > 0 else 0
+                                    away_prob = (1/best_away_odds) * 100 if best_away_odds > 0 else 0
+                                    
+                                    if home_prob > away_prob:
+                                        fifa_text += f"📊 Win probability: {home_prob:.1f}% ({home_team})\n"
                                     else:
-                                        fifa_text += f"🎯 **Prediction:** {away_team} (Favorite)\n"
+                                        fifa_text += f"📊 Win probability: {away_prob:.1f}% ({away_team})\n"
                                 
                                 fifa_text += "\n"
                             
@@ -613,17 +618,44 @@ Edge% = (Win Probability × Decimal Odds) - 1
                             for game in games[:3]:
                                 home_team = game['home_team']
                                 away_team = game['away_team']
+                                commence_time = game.get('commence_time', '')
                                 
                                 fifa_text += f"🥅 **{away_team} vs {home_team}**\n"
                                 
-                                # Get odds
+                                # Get best odds for Premier League
+                                best_home_odds = 0
+                                best_away_odds = 0
+                                best_draw_odds = 0
+                                
                                 for bookmaker in game.get('bookmakers', []):
-                                    if bookmaker['title'] == 'Bet365':
-                                        for market in bookmaker.get('markets', []):
-                                            if market['key'] == 'h2h':
-                                                for outcome in market['outcomes']:
-                                                    fifa_text += f"💰 {outcome['name']}: {outcome['price']}\n"
-                                        break
+                                    for market in bookmaker.get('markets', []):
+                                        if market['key'] == 'h2h':
+                                            for outcome in market['outcomes']:
+                                                if outcome['name'] == home_team:
+                                                    best_home_odds = max(best_home_odds, outcome['price'])
+                                                elif outcome['name'] == away_team:
+                                                    best_away_odds = max(best_away_odds, outcome['price'])
+                                                elif outcome['name'] == 'Draw':
+                                                    best_draw_odds = max(best_draw_odds, outcome['price'])
+                                
+                                if best_home_odds and best_away_odds:
+                                    fifa_text += f"🏠 {home_team}: {best_home_odds}\n"
+                                    fifa_text += f"✈️ {away_team}: {best_away_odds}\n"
+                                    if best_draw_odds:
+                                        fifa_text += f"🤝 Draw: {best_draw_odds}\n"
+                                    
+                                    if commence_time:
+                                        fifa_text += f"⏰ {commence_time[:10]}T{commence_time[11:16]}\n"
+                                    
+                                    # Calculate win probability
+                                    home_prob = (1/best_home_odds) * 100 if best_home_odds > 0 else 0
+                                    away_prob = (1/best_away_odds) * 100 if best_away_odds > 0 else 0
+                                    
+                                    if home_prob > away_prob:
+                                        fifa_text += f"📊 Win probability: {home_prob:.1f}% ({home_team})\n"
+                                    else:
+                                        fifa_text += f"📊 Win probability: {away_prob:.1f}% ({away_team})\n"
+                                
                                 fifa_text += "\n"
                 except Exception:
                     fifa_text += "⚽ **No FIFA or international matches currently available**\n\n"
