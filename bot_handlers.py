@@ -523,7 +523,7 @@ Edge% = (Win Probability × Decimal Odds) - 1
             fifa_text = "🏆 **FIFA World Cup & International Soccer**\n\n"
             
             # Try to get FIFA World Cup or international soccer matches
-            fifa_sports = ['soccer_fifa_world_cup', 'soccer_conmebol_copa_america', 'soccer_uefa_european_championship']
+            fifa_sports = ['soccer_fifa_club_world_cup', 'soccer_fifa_world_cup', 'soccer_conmebol_copa_america', 'soccer_uefa_european_championship', 'soccer_uefa_nations_league']
             
             games_found = False
             
@@ -532,7 +532,7 @@ Edge% = (Win Probability × Decimal Odds) - 1
                     url = f"{self.api_base_url}/sports/{sport}/odds"
                     params = {
                         'apiKey': self.odds_api_key,
-                        'regions': 'us,uk',
+                        'regions': 'us',
                         'markets': 'h2h',
                         'dateFormat': 'iso'
                     }
@@ -597,7 +597,79 @@ Edge% = (Win Probability × Decimal Odds) - 1
                     continue
             
             if not games_found:
-                # If no FIFA games, show major international soccer leagues
+                # Try to get other international competitions
+                other_competitions = ['soccer_conmebol_copa_libertadores', 'soccer_conmebol_copa_sudamericana', 'soccer_concacaf_gold_cup', 'soccer_uefa_champs_league_qualification']
+                
+                for comp in other_competitions:
+                    try:
+                        url = f"{self.api_base_url}/sports/{comp}/odds"
+                        params = {
+                            'apiKey': self.odds_api_key,
+                            'regions': 'us,uk',
+                            'markets': 'h2h',
+                            'dateFormat': 'iso'
+                        }
+                        
+                        response = requests.get(url, params=params, timeout=10)
+                        
+                        if response.status_code == 200:
+                            games = response.json()
+                            
+                            if games:
+                                comp_name = comp.replace('soccer_', '').replace('_', ' ').title()
+                                fifa_text += f"⚽ **{comp_name} Matches:**\n\n"
+                                
+                                for game in games[:3]:
+                                    home_team = game['home_team']
+                                    away_team = game['away_team']
+                                    commence_time = game.get('commence_time', '')
+                                    
+                                    fifa_text += f"🥅 **{away_team} vs {home_team}**\n"
+                                    
+                                    # Get best odds
+                                    best_home_odds = 0
+                                    best_away_odds = 0
+                                    best_draw_odds = 0
+                                    
+                                    for bookmaker in game.get('bookmakers', []):
+                                        for market in bookmaker.get('markets', []):
+                                            if market['key'] == 'h2h':
+                                                for outcome in market['outcomes']:
+                                                    if outcome['name'] == home_team:
+                                                        best_home_odds = max(best_home_odds, outcome['price'])
+                                                    elif outcome['name'] == away_team:
+                                                        best_away_odds = max(best_away_odds, outcome['price'])
+                                                    elif outcome['name'] == 'Draw':
+                                                        best_draw_odds = max(best_draw_odds, outcome['price'])
+                                    
+                                    if best_home_odds and best_away_odds:
+                                        fifa_text += f"🏠 {home_team}: {best_home_odds}\n"
+                                        fifa_text += f"✈️ {away_team}: {best_away_odds}\n"
+                                        if best_draw_odds:
+                                            fifa_text += f"🤝 Draw: {best_draw_odds}\n"
+                                        
+                                        if commence_time:
+                                            fifa_text += f"⏰ {commence_time[:10]}T{commence_time[11:16]}\n"
+                                        
+                                        # Calculate win probability
+                                        home_prob = (1/best_home_odds) * 100 if best_home_odds > 0 else 0
+                                        away_prob = (1/best_away_odds) * 100 if best_away_odds > 0 else 0
+                                        
+                                        if home_prob > away_prob:
+                                            fifa_text += f"📊 Win probability: {home_prob:.1f}% ({home_team})\n"
+                                        else:
+                                            fifa_text += f"📊 Win probability: {away_prob:.1f}% ({away_team})\n"
+                                    
+                                    fifa_text += "\n"
+                                
+                                games_found = True
+                                break
+                                
+                    except Exception as e:
+                        logger.error(f"Error fetching {comp}: {e}")
+                        continue
+                
+                # Show current top league games as alternative
                 try:
                     url = f"{self.api_base_url}/sports/soccer_epl/odds"
                     params = {
@@ -613,7 +685,7 @@ Edge% = (Win Probability × Decimal Odds) - 1
                         games = response.json()
                         
                         if games:
-                            fifa_text += "⚽ **Premier League (No FIFA matches currently)**\n\n"
+                            fifa_text += "⚽ **Current Premier League Matches:**\n\n"
                             
                             for game in games[:3]:
                                 home_team = game['home_team']
