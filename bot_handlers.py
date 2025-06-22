@@ -5,6 +5,8 @@ from datetime import datetime
 import logging
 import requests
 import os
+from weather_sports_analyzer import WeatherSportsAnalyzer
+from line_movement_tracker import LineMovementTracker
 
 logger = logging.getLogger(__name__)
 
@@ -12,6 +14,8 @@ class BotHandlers:
     def __init__(self):
         self.odds_api_key = os.getenv('ODDS_API_KEY')
         self.api_base_url = "https://api.the-odds-api.com/v4"
+        self.weather_analyzer = WeatherSportsAnalyzer()
+        self.line_tracker = LineMovementTracker()
         
     async def start_command(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
         """Handle /start command"""
@@ -999,6 +1003,54 @@ Scanning opportunities across major sports...
         except Exception as e:
             logger.error(f"Error in scores command: {e}")
             await update.message.reply_text("Error fetching scores. Please try again.")
+
+    async def weather_command(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
+        """Handle /weather command - Weather impact analysis"""
+        try:
+            sport_key = context.args[0] if context.args else 'americanfootball_nfl'
+            
+            await update.message.reply_text("⛅ Analyzing weather impact on betting lines...")
+            
+            # Get current games for weather analysis
+            url = f"{self.api_base_url}/sports/{sport_key}/odds"
+            params = {
+                'apiKey': self.odds_api_key,
+                'regions': 'us',
+                'markets': 'h2h,totals',
+                'dateFormat': 'iso'
+            }
+            
+            response = requests.get(url, params=params, timeout=10)
+            
+            if response.status_code == 200:
+                games = response.json()
+                weather_analysis = self.weather_analyzer.analyze_weather_impact(sport_key, games)
+                weather_report = self.weather_analyzer.generate_weather_report(weather_analysis)
+                
+                await update.message.reply_text(weather_report, parse_mode=ParseMode.MARKDOWN)
+            else:
+                await update.message.reply_text("❌ Unable to fetch weather data currently")
+                
+        except Exception as e:
+            logger.error(f"Error in weather command: {e}")
+            await update.message.reply_text("❌ Weather analysis temporarily unavailable")
+    
+    async def movements_command(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
+        """Handle /movements command - Line movement tracking"""
+        try:
+            sport_key = context.args[0] if context.args else 'basketball_nba'
+            
+            await update.message.reply_text("📈 Tracking sharp money and line movements...")
+            
+            # Get line movement analysis
+            movement_data = self.line_tracker.track_line_movements(sport_key)
+            movement_report = self.line_tracker.generate_movement_report(movement_data)
+            
+            await update.message.reply_text(movement_report, parse_mode=ParseMode.MARKDOWN)
+            
+        except Exception as e:
+            logger.error(f"Error in movements command: {e}")
+            await update.message.reply_text("❌ Line movement tracking temporarily unavailable")
 
     async def error_handler(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
         """Handle errors"""
