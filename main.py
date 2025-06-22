@@ -34,7 +34,8 @@ def main():
         # Initialize handlers
         handlers = BotHandlers()
         
-        # Register command handlers
+        # Register all command handlers
+        # Basic commands
         application.add_handler(CommandHandler("start", handlers.start_command))
         application.add_handler(CommandHandler("help", handlers.help_command))
         application.add_handler(CommandHandler("sports", handlers.sports_command))
@@ -43,6 +44,8 @@ def main():
         application.add_handler(CommandHandler("games", handlers.games_command))
         application.add_handler(CommandHandler("today", handlers.today_command))
         application.add_handler(CommandHandler("scores", handlers.scores_command))
+        
+        # Enhanced prediction and analysis commands
         application.add_handler(CommandHandler("advanced", handlers.advanced_predictions_command))
         application.add_handler(CommandHandler("arbitrage", handlers.arbitrage_command))
         application.add_handler(CommandHandler("bankroll", handlers.bankroll_command))
@@ -52,6 +55,8 @@ def main():
         application.add_handler(CommandHandler("mystats", handlers.my_stats_command))
         application.add_handler(CommandHandler("pending", handlers.pending_bets_command))
         application.add_handler(CommandHandler("horses", handlers.horse_racing_command))
+        
+        # Professional betting intelligence commands
         application.add_handler(CommandHandler("steam", handlers.steam_moves_command))
         application.add_handler(CommandHandler("edges", handlers.mathematical_edges_command))
         application.add_handler(CommandHandler("insider", handlers.insider_intelligence_command))
